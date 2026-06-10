@@ -32,10 +32,19 @@ python3 -m http.server 8077
 | Households Debt to GDP (%) | line |
 | Unemployment Rate (%) | line |
 
+## Zooming &amp; date ranges
+
+- **Quick ranges:** use the **1Y / 3Y / 5Y / 10Y / All** buttons above the chart to focus on recent years.
+- **Drag to zoom:** click-drag horizontally across the chart to zoom into a date range.
+- **Scroll to zoom:** mouse wheel zooms in/out on the x-axis.
+- **Pan:** hold **Shift** and drag to move along the timeline.
+- **Reset zoom** returns to the full history.
+
 ## Files
 
 - `index.html` — the dashboard app (uses bundled `chart.umd.min.js`).
 - `chart.umd.min.js` — Chart.js library (bundled so the app works offline).
+- `chartjs-plugin-zoom.min.js`, `hammer.min.js` — zoom/pan support (bundled, offline).
 - `data.js` — data embedded as JS so the page works when opened directly (file://).
 - `data.json` — same data as JSON (used if served over HTTP).
 - `generate_data.py` — re-extracts `data.js` + `data.json` from the Excel file. Re-run after updating the spreadsheet:

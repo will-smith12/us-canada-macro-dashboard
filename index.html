@@ -5,6 +5,8 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>US &amp; Canada Macro Indicators Dashboard</title>
 <script src="chart.umd.min.js"></script>
+<script src="hammer.min.js"></script>
+<script src="chartjs-plugin-zoom.min.js"></script>
 <script src="data.js"></script>
 <style>
   :root{
@@ -39,6 +41,14 @@
   .chart-box{background:var(--panel);border:1px solid var(--line);border-radius:12px;padding:18px 18px 8px;height:460px;position:relative;}
   .src{color:var(--muted);font-size:11.5px;margin-top:14px;line-height:1.6;}
   footer{padding:14px 30px;color:var(--muted);font-size:12px;border-top:1px solid var(--line);}
+  .controls{display:flex;align-items:center;gap:8px;flex-wrap:wrap;margin:0 0 12px;}
+  .controls .grp{display:flex;gap:4px;background:var(--panel);border:1px solid var(--line);border-radius:8px;padding:4px;}
+  .controls button{background:none;border:none;color:var(--muted);padding:6px 12px;font-size:12.5px;
+    border-radius:6px;cursor:pointer;transition:.12s;font-weight:600;}
+  .controls button:hover{color:var(--text);background:var(--panel2);}
+  .controls button.active{background:var(--accent);color:#08131f;}
+  .controls .reset{border:1px solid var(--line);border-radius:8px;}
+  .controls .hint{color:var(--muted);font-size:11.5px;margin-left:4px;}
 </style>
 </head>
 <body>
@@ -61,6 +71,17 @@
     </div>
     <div class="desc" id="t-desc"></div>
     <div class="cards" id="t-cards"></div>
+    <div class="controls">
+      <div class="grp" id="range-grp">
+        <button data-years="1">1Y</button>
+        <button data-years="3">3Y</button>
+        <button data-years="5">5Y</button>
+        <button data-years="10">10Y</button>
+        <button data-years="0">All</button>
+      </div>
+      <button class="reset" id="reset-zoom">Reset zoom</button>
+      <span class="hint">Tip: drag across the chart to zoom, scroll to zoom, hold Shift &amp; drag to pan.</span>
+    </div>
     <div class="chart-box"><canvas id="chart"></canvas></div>
     <div class="src" id="t-src"></div>
   </main>
@@ -68,8 +89,15 @@
 <footer id="foot"></footer>
 
 <script>
-let DB = null, chart = null, active = 0;
+let DB = null, chart = null, active = 0, curDates = [];
 const COL = {ca:'#ef4444', us:'#3b82f6'};
+if (window.ChartZoom) Chart.register(window.ChartZoom);
+
+// Parse "YYYY-MM" or "YYYY-MM-DD" to a Date (UTC, day 1 if absent).
+function parseDate(s){
+  const p = String(s).split('-');
+  return new Date(Date.UTC(+p[0], (+p[1]||1)-1, +p[2]||1));
+}
 
 function fmt(v){
   if(v===null||v===undefined||v==='') return '\u2014';
@@ -142,6 +170,7 @@ function select(i){
 
 function drawChart(ind){
   if(chart) chart.destroy();
+  curDates = ind.dates;
   const ctx = document.getElementById('chart');
   const baseType = (ind.chartType === 'bar') ? 'bar' : 'line';
   const datasets = [datasetFor(ind,'canada',COL.ca, ind.dualAxis ? 'yCA' : undefined)];
@@ -170,12 +199,53 @@ function drawChart(ind){
       interaction:{ mode:'index', intersect:false },
       plugins:{
         legend:{ labels:{ color:'#e2e8f0', usePointStyle:true } },
-        tooltip:{ backgroundColor:'#0f172a', borderColor:'#334155', borderWidth:1 }
+        tooltip:{ backgroundColor:'#0f172a', borderColor:'#334155', borderWidth:1 },
+        zoom:{
+          limits:{ x:{ min:'original', max:'original' } },
+          pan:{ enabled:true, mode:'x', modifierKey:'shift' },
+          zoom:{
+            mode:'x',
+            wheel:{ enabled:true, speed:0.1 },
+            drag:{ enabled:true, backgroundColor:'rgba(56,189,248,0.15)',
+                   borderColor:'rgba(56,189,248,0.6)', borderWidth:1 },
+            onZoomComplete:()=>clearRangeActive()
+          }
+        }
       },
       scales
     }
   });
+  clearRangeActive();
 }
+
+function clearRangeActive(){
+  document.querySelectorAll('#range-grp button').forEach(b=>b.classList.remove('active'));
+}
+
+// Restrict the x-axis (category indices) to the last `years` of data; 0 = all.
+function setRange(years, btn){
+  if(!chart || !curDates.length) return;
+  clearRangeActive();
+  if(!years){
+    if(chart.resetZoom) chart.resetZoom('none');
+    return;
+  }
+  if(btn) btn.classList.add('active');
+  const last = parseDate(curDates[curDates.length-1]);
+  const cutoff = new Date(last); cutoff.setUTCFullYear(cutoff.getUTCFullYear()-years);
+  let startIdx = curDates.findIndex(d => parseDate(d) >= cutoff);
+  if(startIdx < 0) startIdx = 0;
+  chart.zoomScale('x', {min:startIdx, max:curDates.length-1}, 'default');
+}
+
+document.getElementById('range-grp').addEventListener('click', e=>{
+  const b = e.target.closest('button'); if(!b) return;
+  setRange(+b.dataset.years, b);
+});
+document.getElementById('reset-zoom').addEventListener('click', ()=>{
+  clearRangeActive();
+  if(chart && chart.resetZoom) chart.resetZoom('none');
+});
 
 function init(db){
   DB = db;
