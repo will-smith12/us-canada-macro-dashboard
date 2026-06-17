@@ -4,126 +4,642 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>US &amp; Canada Macro Indicators Dashboard</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
 <script src="chart.umd.min.js"></script>
 <script src="hammer.min.js"></script>
 <script src="chartjs-plugin-zoom.min.js"></script>
+<script src="jspdf.umd.min.js"></script>
+<script src="pptxgen.bundle.js"></script>
+<script src="xlsx.full.min.js"></script>
 <script src="data.js"></script>
 <style>
-  :root{
-    --bg:#0f172a; --panel:#1e293b; --panel2:#172033; --line:#334155;
-    --text:#e2e8f0; --muted:#94a3b8; --ca:#ef4444; --us:#3b82f6; --accent:#38bdf8;
+  :root {
+    --bg:      #0a0f1e;
+    --panel:   rgba(255,255,255,0.05);
+    --panel2:  #0d1526;
+    --line:    rgba(255,255,255,0.08);
+    --text:    #eef2ff;
+    --muted:   #8892b0;
+    --ca:      #ef4444;
+    --us:      #3b82f6;
+    --accent:  #818cf8;
+    --accent2: #38bdf8;
   }
-  *{box-sizing:border-box}
-  body{margin:0;font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Helvetica,Arial,sans-serif;
-       background:var(--bg);color:var(--text);}
-  header{padding:24px 28px 16px;border-bottom:1px solid var(--line);background:var(--panel2);}
-  header h1{margin:0;font-size:22px;font-weight:650;letter-spacing:.2px;}
-  header p{margin:6px 0 0;color:var(--muted);font-size:13px;}
-  .legend-dot{display:inline-block;width:10px;height:10px;border-radius:50%;margin:0 5px 0 14px;vertical-align:middle;}
-  .wrap{display:flex;min-height:calc(100vh - 92px);}
-  nav{width:280px;flex-shrink:0;background:var(--panel2);border-right:1px solid var(--line);padding:12px 0;overflow-y:auto;}
-  nav button{display:block;width:100%;text-align:left;background:none;border:none;color:var(--muted);
-    padding:11px 22px;font-size:13.5px;cursor:pointer;border-left:3px solid transparent;transition:.12s;}
-  nav button:hover{background:var(--panel);color:var(--text);}
-  nav button.active{color:#fff;background:var(--panel);border-left-color:var(--accent);font-weight:600;}
-  nav button .ct{display:block;font-size:11px;color:var(--accent);margin-top:2px;text-transform:uppercase;letter-spacing:.5px;}
-  main{flex:1;padding:26px 30px;overflow-y:auto;}
-  .tab-head{display:flex;justify-content:space-between;align-items:flex-start;flex-wrap:wrap;gap:12px;margin-bottom:6px;}
-  .tab-head h2{margin:0;font-size:20px;}
-  .tab-head .meta{color:var(--muted);font-size:12.5px;margin-top:4px;}
-  .desc{color:var(--muted);font-size:13.5px;margin:10px 0 18px;max-width:760px;line-height:1.5;}
-  .cards{display:flex;gap:14px;flex-wrap:wrap;margin-bottom:20px;}
-  .card{background:var(--panel);border:1px solid var(--line);border-radius:10px;padding:14px 18px;min-width:180px;}
-  .card .lbl{font-size:11.5px;color:var(--muted);text-transform:uppercase;letter-spacing:.5px;}
-  .card .val{font-size:24px;font-weight:680;margin-top:4px;}
-  .card .sub{font-size:11.5px;color:var(--muted);margin-top:3px;}
-  .card.ca .val{color:var(--ca);} .card.us .val{color:var(--us);}
-  .chart-box{background:var(--panel);border:1px solid var(--line);border-radius:12px;padding:18px 18px 8px;height:460px;position:relative;}
-  .src{color:var(--muted);font-size:11.5px;margin-top:14px;line-height:1.6;}
-  footer{padding:14px 30px;color:var(--muted);font-size:12px;border-top:1px solid var(--line);}
-  .controls{display:flex;align-items:center;gap:8px;flex-wrap:wrap;margin:0 0 12px;}
-  .controls .grp{display:flex;gap:4px;background:var(--panel);border:1px solid var(--line);border-radius:8px;padding:4px;}
-  .controls button{background:none;border:none;color:var(--muted);padding:6px 12px;font-size:12.5px;
-    border-radius:6px;cursor:pointer;transition:.12s;font-weight:600;}
-  .controls button:hover{color:var(--text);background:var(--panel2);}
-  .controls button.active{background:var(--accent);color:#08131f;}
-  .controls .reset{border:1px solid var(--line);border-radius:8px;}
-  .controls .hint{color:var(--muted);font-size:11.5px;margin-left:4px;}
+  * { box-sizing: border-box; }
+  body {
+    margin: 0;
+    font-family: 'Inter', -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+    background: var(--bg);
+    color: var(--text);
+  }
+
+  /* ── Header ── */
+  header {
+    display: flex;
+    align-items: center;
+    gap: 16px;
+    padding: 18px 32px;
+    border-bottom: 1px solid var(--line);
+    background: var(--panel2);
+  }
+  .header-text h1 {
+    margin: 0;
+    font-size: 24px;
+    font-weight: 700;
+    letter-spacing: -0.3px;
+  }
+  .header-text p {
+    margin: 5px 0 0;
+    color: var(--muted);
+    font-size: 13px;
+  }
+  .legend-dot {
+    display: inline-block;
+    width: 10px;
+    height: 10px;
+    border-radius: 50%;
+    margin: 0 5px 0 14px;
+    vertical-align: middle;
+  }
+
+  /* ── Hamburger button ── */
+  .hamburger {
+    background: none;
+    border: 1px solid var(--line);
+    color: var(--muted);
+    font-size: 18px;
+    line-height: 1;
+    width: 38px;
+    height: 38px;
+    border-radius: 8px;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
+    transition: 0.12s;
+  }
+  .hamburger:hover { color: var(--text); border-color: rgba(255,255,255,0.18); background: var(--panel); }
+  .hamburger.open  { color: var(--accent); border-color: var(--accent); }
+
+  /* ── Drawer overlay + panel ── */
+  .drawer-overlay {
+    display: none;
+    position: fixed;
+    inset: 0;
+    background: rgba(0,0,0,0.5);
+    z-index: 100;
+  }
+  .drawer-overlay.open { display: block; }
+  .drawer {
+    position: fixed;
+    top: 0; left: 0; bottom: 0;
+    width: 320px;
+    background: #0d1526;
+    border-right: 1px solid var(--line);
+    z-index: 101;
+    transform: translateX(-100%);
+    transition: transform 0.22s cubic-bezier(0.4,0,0.2,1);
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+  }
+  .drawer.open { transform: translateX(0); }
+  .drawer-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 20px 22px 16px;
+    border-bottom: 1px solid var(--line);
+    flex-shrink: 0;
+  }
+  .drawer-header h2 {
+    margin: 0;
+    font-size: 15px;
+    font-weight: 600;
+    color: var(--text);
+  }
+  .drawer-header p {
+    margin: 4px 0 0;
+    font-size: 11.5px;
+    color: var(--muted);
+  }
+  .drawer-close {
+    background: none;
+    border: none;
+    color: var(--muted);
+    font-size: 20px;
+    cursor: pointer;
+    padding: 4px;
+    line-height: 1;
+    border-radius: 4px;
+    transition: 0.12s;
+    flex-shrink: 0;
+    align-self: flex-start;
+  }
+  .drawer-close:hover { color: var(--text); }
+  .drawer-list {
+    overflow-y: auto;
+    padding: 12px 0 24px;
+    flex: 1;
+  }
+  .drawer-item {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 12px 22px;
+    border-bottom: 1px solid rgba(255,255,255,0.04);
+    text-decoration: none;
+    transition: background 0.12s;
+    gap: 12px;
+  }
+  .drawer-item:hover { background: rgba(255,255,255,0.04); }
+  .drawer-item .di-name {
+    font-size: 13.5px;
+    font-weight: 500;
+    color: var(--text);
+    line-height: 1.3;
+  }
+  .drawer-item .di-type {
+    font-size: 11px;
+    color: var(--muted);
+    margin-top: 2px;
+    text-transform: uppercase;
+    letter-spacing: 0.4px;
+  }
+  .drawer-item .di-link {
+    flex-shrink: 0;
+    font-size: 11px;
+    font-weight: 600;
+    color: var(--accent);
+    white-space: nowrap;
+    opacity: 0.8;
+  }
+  .drawer-item:hover .di-link { opacity: 1; }
+  .drawer-item.no-link .di-link { color: var(--muted); opacity: 0.5; }
+
+  /* ── Control bar ── */
+  .control-bar {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 11px 32px;
+    border-bottom: 1px solid var(--line);
+    background: var(--panel2);
+    flex-wrap: wrap;
+  }
+  .ctrl-group {
+    display: flex;
+    align-items: center;
+    gap: 7px;
+  }
+  .ctrl-label {
+    font-size: 11px;
+    font-weight: 600;
+    color: var(--muted);
+    text-transform: uppercase;
+    letter-spacing: 0.6px;
+    white-space: nowrap;
+  }
+  .ctrl-select {
+    background: #111a2e;
+    border: 1px solid var(--line);
+    color: var(--text);
+    font-family: inherit;
+    font-size: 13px;
+    font-weight: 500;
+    padding: 7px 30px 7px 12px;
+    border-radius: 8px;
+    cursor: pointer;
+    appearance: none;
+    -webkit-appearance: none;
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='10' height='6' viewBox='0 0 10 6'%3E%3Cpath d='M1 1l4 4 4-4' stroke='%238892b0' stroke-width='1.5' fill='none' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E");
+    background-repeat: no-repeat;
+    background-position: right 10px center;
+    transition: border-color 0.15s, background-color 0.15s;
+  }
+  .ctrl-select:hover {
+    border-color: rgba(255,255,255,0.18);
+    background-color: #142035;
+  }
+  .ctrl-select:focus {
+    outline: none;
+    border-color: var(--accent);
+    box-shadow: 0 0 0 3px rgba(129,140,248,0.15);
+  }
+  .ctrl-select option {
+    background: #0d1526;
+    color: var(--text);
+  }
+  .ctrl-divider {
+    width: 1px;
+    height: 22px;
+    background: var(--line);
+    margin: 0 2px;
+    flex-shrink: 0;
+  }
+
+  /* ── Range buttons ── */
+  .grp {
+    display: flex;
+    gap: 2px;
+    background: #111a2e;
+    border: 1px solid var(--line);
+    border-radius: 8px;
+    padding: 3px;
+  }
+  .grp button {
+    background: none;
+    border: none;
+    color: var(--muted);
+    padding: 5px 10px;
+    font-size: 12px;
+    font-family: inherit;
+    font-weight: 600;
+    border-radius: 6px;
+    cursor: pointer;
+    transition: 0.12s;
+  }
+  .grp button:hover { color: var(--text); background: rgba(255,255,255,0.06); }
+  .grp button.active { background: var(--accent2); color: #08131f; }
+  .reset-btn {
+    background: none;
+    border: 1px solid var(--line);
+    color: var(--muted);
+    font-family: inherit;
+    font-size: 12px;
+    font-weight: 500;
+    padding: 6px 12px;
+    border-radius: 8px;
+    cursor: pointer;
+    transition: 0.12s;
+  }
+  .reset-btn:hover { color: var(--text); border-color: rgba(255,255,255,0.18); }
+  .comp-toggle {
+    display: none;
+    background: none;
+    border: 1px solid var(--line);
+    color: var(--muted);
+    font-family: inherit;
+    font-size: 12px;
+    font-weight: 500;
+    padding: 6px 12px;
+    border-radius: 8px;
+    cursor: pointer;
+    transition: 0.12s;
+  }
+  .comp-toggle:hover { color: var(--text); border-color: rgba(255,255,255,0.18); }
+  .comp-toggle.active { background: rgba(129,140,248,0.15); border-color: #818cf8; color: #818cf8; }
+  .export-wrap { position: relative; display: inline-block; }
+  .export-btn {
+    background: none;
+    border: 1px solid var(--line);
+    color: var(--muted);
+    font-family: inherit;
+    font-size: 12px;
+    font-weight: 500;
+    padding: 6px 12px;
+    border-radius: 8px;
+    cursor: pointer;
+    transition: 0.12s;
+  }
+  .export-btn:hover { color: var(--text); border-color: rgba(255,255,255,0.18); }
+  .export-btn.open { background: rgba(129,140,248,0.15); border-color: #818cf8; color: #818cf8; }
+  .export-menu {
+    position: absolute;
+    top: calc(100% + 6px);
+    right: 0;
+    min-width: 180px;
+    background: var(--panel2);
+    border: 1px solid var(--line);
+    border-radius: 10px;
+    padding: 6px;
+    box-shadow: 0 12px 30px rgba(0,0,0,0.45);
+    z-index: 50;
+    display: none;
+  }
+  .export-menu.open { display: block; }
+  .export-menu button {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+    width: 100%;
+    text-align: left;
+    background: none;
+    border: none;
+    color: var(--text);
+    font-family: inherit;
+    font-size: 12.5px;
+    font-weight: 500;
+    padding: 8px 10px;
+    border-radius: 7px;
+    cursor: pointer;
+    transition: 0.12s;
+  }
+  .export-menu button:hover { background: rgba(255,255,255,0.06); }
+  .export-menu button:disabled { color: var(--muted); opacity: 0.5; cursor: not-allowed; }
+  .export-menu button:disabled:hover { background: none; }
+  .export-menu .ext { color: var(--muted); font-size: 11px; }
+  .hint {
+    color: var(--muted);
+    font-size: 11.5px;
+    margin-left: 2px;
+  }
+
+  /* ── Main content ── */
+  main { padding: 28px 32px; }
+  .tab-head {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start;
+    flex-wrap: wrap;
+    gap: 12px;
+    margin-bottom: 6px;
+  }
+  .tab-head h2 {
+    margin: 0;
+    font-size: 22px;
+    font-weight: 700;
+    letter-spacing: -0.2px;
+  }
+  .tab-head .meta {
+    color: var(--muted);
+    font-size: 12.5px;
+    margin-top: 5px;
+  }
+  .desc {
+    color: var(--muted);
+    font-size: 13.5px;
+    margin: 10px 0 22px;
+    max-width: 840px;
+    line-height: 1.6;
+  }
+
+  /* ── Cards ── */
+  .cards {
+    display: flex;
+    gap: 14px;
+    flex-wrap: wrap;
+    margin-bottom: 22px;
+  }
+  .card {
+    background: var(--panel);
+    backdrop-filter: blur(12px);
+    -webkit-backdrop-filter: blur(12px);
+    border: 1px solid var(--line);
+    border-radius: 12px;
+    padding: 18px 22px;
+    min-width: 190px;
+    transition: border-color 0.15s;
+  }
+  .card:hover { border-color: rgba(255,255,255,0.14); }
+  .card .lbl {
+    font-size: 11px;
+    color: var(--muted);
+    text-transform: uppercase;
+    letter-spacing: 0.6px;
+    font-weight: 600;
+  }
+  .card .val {
+    font-size: 28px;
+    font-weight: 700;
+    margin-top: 6px;
+    letter-spacing: -0.5px;
+  }
+  .card .sub {
+    font-size: 11.5px;
+    color: var(--muted);
+    margin-top: 4px;
+  }
+  .card.ca .val { color: var(--ca); }
+  .card.us .val { color: var(--us); }
+
+  /* ── Chart ── */
+  .chart-box {
+    background: var(--panel);
+    backdrop-filter: blur(12px);
+    -webkit-backdrop-filter: blur(12px);
+    border: 1px solid var(--line);
+    border-radius: 14px;
+    padding: 20px 20px 10px;
+    height: 480px;
+    position: relative;
+  }
+
+  /* ── Sources / footer ── */
+  .src {
+    color: var(--muted);
+    font-size: 11.5px;
+    margin-top: 16px;
+    line-height: 1.7;
+  }
+  footer {
+    padding: 14px 32px;
+    color: var(--muted);
+    font-size: 12px;
+    border-top: 1px solid var(--line);
+    margin-top: 4px;
+  }
 </style>
 </head>
 <body>
+
 <header>
-  <h1>US &amp; Canada Macro Indicators</h1>
-  <p>
-    Interactive dashboard &middot; one chart per indicator
-    <span class="legend-dot" style="background:var(--ca)"></span>Canada
-    <span class="legend-dot" style="background:var(--us)"></span>United States
-  </p>
+  <button class="hamburger" id="hamburger-btn" aria-label="Variable reference">&#9776;</button>
+  <div class="header-text">
+    <h1>US &amp; Canada Macro Indicators</h1>
+    <p>
+      Interactive dashboard &middot; one chart per indicator
+      <span class="legend-dot" style="background:var(--ca)"></span>Canada
+      <span class="legend-dot" style="background:var(--us)"></span>United States
+    </p>
+  </div>
 </header>
-<div class="wrap">
-  <nav id="nav"></nav>
-  <main>
-    <div class="tab-head">
-      <div>
-        <h2 id="t-name">&nbsp;</h2>
-        <div class="meta" id="t-meta"></div>
-      </div>
+
+<!-- Slide-out drawer -->
+<div class="drawer-overlay" id="drawer-overlay"></div>
+<div class="drawer" id="drawer">
+  <div class="drawer-header">
+    <div>
+      <h2>Variable Reference</h2>
+      <p>Click an indicator to open its Confluence page</p>
     </div>
-    <div class="desc" id="t-desc"></div>
-    <div class="cards" id="t-cards"></div>
-    <div class="controls">
-      <div class="grp" id="range-grp">
-        <button data-years="1">1Y</button>
-        <button data-years="3">3Y</button>
-        <button data-years="5">5Y</button>
-        <button data-years="10">10Y</button>
-        <button data-years="0">All</button>
-      </div>
-      <button class="reset" id="reset-zoom">Reset zoom</button>
-      <span class="hint">Tip: drag across the chart to zoom, scroll to zoom, hold Shift &amp; drag to pan.</span>
-    </div>
-    <div class="chart-box"><canvas id="chart"></canvas></div>
-    <div class="src" id="t-src"></div>
-  </main>
+    <button class="drawer-close" id="drawer-close" aria-label="Close">&times;</button>
+  </div>
+  <div class="drawer-list" id="drawer-list"></div>
 </div>
+
+<div class="control-bar">
+  <div class="ctrl-group">
+    <label class="ctrl-label" for="sel-board">Board</label>
+    <select id="sel-board" class="ctrl-select">
+      <option value="both">US-Canada</option>
+      <option value="us">US Variable</option>
+      <option value="ca">Canadian Variable</option>
+    </select>
+  </div>
+  <div class="ctrl-group">
+    <label class="ctrl-label" for="sel-time">Time</label>
+    <select id="sel-time" class="ctrl-select">
+      <option value="monthly">Monthly</option>
+      <option value="yearly">Yearly</option>
+    </select>
+  </div>
+  <div class="ctrl-group">
+    <label class="ctrl-label" for="sel-variable">Variable</label>
+    <select id="sel-variable" class="ctrl-select"></select>
+  </div>
+  <button class="comp-toggle" id="toggle-components">Show components</button>
+  <div class="ctrl-divider"></div>
+  <div class="grp" id="range-grp">
+    <button data-years="1">1Y</button>
+    <button data-years="3">3Y</button>
+    <button data-years="5">5Y</button>
+    <button data-years="10">10Y</button>
+    <button data-years="0">All</button>
+  </div>
+  <button class="reset-btn" id="reset-zoom">Reset zoom</button>
+  <div class="export-wrap">
+    <button class="export-btn" id="export-btn">Export &#9662;</button>
+    <div class="export-menu" id="export-menu">
+      <button data-fmt="png">PNG image <span class="ext">.png</span></button>
+      <button data-fmt="pdf">PDF document <span class="ext">.pdf</span></button>
+      <button data-fmt="pptx">PowerPoint slide <span class="ext">.pptx</span></button>
+      <button data-fmt="xlsx">Excel data <span class="ext">.xlsx</span></button>
+    </div>
+  </div>
+  <span class="hint">Drag to zoom &middot; scroll to zoom &middot; Shift+drag to pan</span>
+</div>
+
+<main>
+  <div class="tab-head">
+    <div>
+      <h2 id="t-name">&nbsp;</h2>
+      <div class="meta" id="t-meta"></div>
+    </div>
+  </div>
+  <div class="desc" id="t-desc"></div>
+  <div class="cards" id="t-cards"></div>
+  <div class="chart-box"><canvas id="chart"></canvas></div>
+  <div class="src" id="t-src"></div>
+</main>
+
 <footer id="foot"></footer>
 
 <script>
+// ── Confluence page URLs ─────────────────────────────────────────────────────
+// Add the Confluence URL for each indicator by name. Leave blank to show
+// "No page yet" in the drawer.
+const CONFLUENCE = {
+  'GDP Growth Rate QoQ (%)':        'https://judiai.atlassian.net/wiki/spaces/LTI/pages/3493036049/GDP+Growth+Rates',
+  'GDP per Capita (USD)':           'https://judiai.atlassian.net/wiki/spaces/LTI/pages/3494084618/GDP+Per+Capita',
+  'Inflation Rate (%)':             'https://judiai.atlassian.net/wiki/spaces/LTI/pages/3492806674/Inflation+Rate',
+  'Policy Interest Rate (%)':       'https://judiai.atlassian.net/wiki/spaces/LTI/pages/3494281221/Policy+Interest+Rate',
+  'Labour Productivity (index)':    'https://judiai.atlassian.net/wiki/spaces/LTI/pages/3493265432/Labour+Productivity',
+  'Gross Fixed Capital Formation':  'https://judiai.atlassian.net/wiki/spaces/LTI/pages/3493953554/Gross+Fixed+Capital+Formation',
+  'GDP (USD B)':                    'https://judiai.atlassian.net/wiki/spaces/LTI/pages/3493167139/GDP+Levels',
+  'Households Debt to GDP (%)':     'https://judiai.atlassian.net/wiki/spaces/LTI/pages/3493920802/Household+Debt+to+GDP+Ratio',
+  'Unemployment Rate (%)':          'https://judiai.atlassian.net/wiki/spaces/LTI/pages/3493789718/Unemployment+Rate',
+};
+// ────────────────────────────────────────────────────────────────────────────
+
+// Annual average CAD per USD (FRED DEXCAUS). Used to convert Canada's Gross
+// Fixed Capital Formation (reported in CAD Million) into USD Billion so it shares
+// the same base unit as the US series and can be compared directly.
+const FX_CAD_PER_USD = {
+  2000: 1.4855, 2001: 1.5487, 2002: 1.5704, 2003: 1.4008, 2004: 1.3017,
+  2005: 1.2115, 2006: 1.1340, 2007: 1.0734, 2008: 1.0660, 2009: 1.1412,
+  2010: 1.0298, 2011: 0.9887, 2012: 0.9995, 2013: 1.0300, 2014: 1.1043,
+  2015: 1.2791, 2016: 1.3243, 2017: 1.2984, 2018: 1.2957, 2019: 1.3269,
+  2020: 1.3422, 2021: 1.2533, 2022: 1.3014, 2023: 1.3494, 2024: 1.3699,
+  2025: 1.3973, 2026: 1.3722,
+};
+
+function fxForYear(year) {
+  const y = Number(year);
+  if (FX_CAD_PER_USD[y] != null) return FX_CAD_PER_USD[y];
+  // Fall back to the nearest available year.
+  const years = Object.keys(FX_CAD_PER_USD).map(Number);
+  const nearest = years.reduce((a, b) => Math.abs(b - y) < Math.abs(a - y) ? b : a);
+  return FX_CAD_PER_USD[nearest];
+}
+
+// Normalize Gross Fixed Capital Formation so both countries share one base unit
+// (USD Billion). Converts Canada's CAD Million series via annual CAD→USD FX, then
+// drops dualAxis so the chart uses the standard US − CA difference view (purple
+// line + Show components toggle), exactly like GDP (USD B).
+function normalizeGFCF(db) {
+  const ind = db.indicators.find(i => i.name === 'Gross Fixed Capital Formation');
+  if (!ind || ind.canada.unit !== 'CAD Million') return;   // guard: never double-convert
+  const toUSD = (cadMillion, year) =>
+    cadMillion == null ? null : (cadMillion / 1000) / fxForYear(year);
+  ind.canada.values = ind.canada.values.map((v, i) => toUSD(v, ind.dates[i].slice(0, 4)));
+  if (ind.canada.latestValue != null) {
+    const ly = (ind.canada.latestDate || '').slice(0, 4) || ind.dates[ind.dates.length - 1].slice(0, 4);
+    ind.canada.latestValue = toUSD(Number(ind.canada.latestValue), ly);
+  }
+  ind.canada.unit = 'USD Billion';
+  ind.unit = 'USD Billion';
+  ind.dualAxis = false;
+  ind.description = 'Investment in fixed assets. Canada converted from CAD to USD ' +
+    'at annual average exchange rates (FRED DEXCAUS) so both series share USD Billion.';
+}
+
 let DB = null, chart = null, active = 0, curDates = [];
-const COL = {ca:'#ef4444', us:'#3b82f6'};
+let board = 'both';         // 'both' | 'us' | 'ca'
+let timeGran = 'monthly';  // 'monthly' | 'yearly'
+let showComponents = false;
+const COL = { ca: '#ef4444', us: '#3b82f6' };
 if (window.ChartZoom) Chart.register(window.ChartZoom);
 
-// Parse "YYYY-MM" or "YYYY-MM-DD" to a Date (UTC, day 1 if absent).
-function parseDate(s){
+function parseDate(s) {
   const p = String(s).split('-');
-  return new Date(Date.UTC(+p[0], (+p[1]||1)-1, +p[2]||1));
+  return new Date(Date.UTC(+p[0], (+p[1] || 1) - 1, +p[2] || 1));
 }
 
-function fmt(v){
-  if(v===null||v===undefined||v==='') return '\u2014';
+function fmt(v) {
+  if (v === null || v === undefined || v === '') return '—';
   const n = Number(v);
-  if(!isFinite(n)) return v;
-  if(Math.abs(n) >= 1000) return n.toLocaleString(undefined,{maximumFractionDigits:0});
-  return n.toLocaleString(undefined,{maximumFractionDigits:2});
+  if (!isFinite(n)) return v;
+  if (Math.abs(n) >= 1000) return n.toLocaleString(undefined, { maximumFractionDigits: 0 });
+  return n.toLocaleString(undefined, { maximumFractionDigits: 2 });
 }
 
-function buildNav(){
-  const nav = document.getElementById('nav');
+function normalizeToIndex(values) {
+  const base = values.find(v => v !== null && v !== 0);
+  if (!base) return values;
+  return values.map(v => v !== null ? (v / base) * 100 : null);
+}
+
+function decimateYearly(dates, values) {
+  const seen = {};
+  dates.forEach((d, i) => {
+    seen[d.slice(0, 4)] = { d, v: values[i] };
+  });
+  const out = { dates: [], values: [] };
+  Object.values(seen).forEach(({ d, v }) => { out.dates.push(d); out.values.push(v); });
+  return out;
+}
+
+function buildDropdowns() {
+  const sel = document.getElementById('sel-variable');
   DB.indicators.forEach((ind, i) => {
-    const b = document.createElement('button');
-    b.innerHTML = ind.name + '<span class="ct">' + ind.chartType + ' chart</span>';
-    b.onclick = () => select(i);
-    nav.appendChild(b);
+    const opt = document.createElement('option');
+    opt.value = i;
+    opt.textContent = ind.name;
+    sel.appendChild(opt);
   });
 }
 
-function datasetFor(ind, key, color, axisId){
-  const isBar = ind.chartType === 'bar';
+function datasetFor(ind, values, color, axisId) {
+  const isBar  = ind.chartType === 'bar';
   const isArea = ind.chartType === 'area';
   const isStep = ind.chartType === 'stepped';
   const ds = {
-    label: key === 'canada' ? 'Canada' : 'United States',
-    data: ind[key].values.map(v => v===null?null:Number(v)),
+    label: color === COL.ca ? 'Canada' : 'United States',
+    data: values.map(v => v === null ? null : Number(v)),
     borderColor: color,
     backgroundColor: isBar ? color + 'cc' : (isArea ? color + '33' : color),
     borderWidth: isBar ? 0 : 2,
@@ -134,81 +650,179 @@ function datasetFor(ind, key, color, axisId){
     fill: isArea ? 'origin' : false,
     stepped: isStep ? 'before' : false,
   };
-  if(axisId) ds.yAxisID = axisId;
+  if (axisId) ds.yAxisID = axisId;
   return ds;
 }
 
-function select(i){
+function select(i) {
   active = i;
+  document.getElementById('sel-variable').value = i;
   const ind = DB.indicators[i];
-  document.querySelectorAll('#nav button').forEach((b,idx)=>b.classList.toggle('active', idx===i));
+
   document.getElementById('t-name').textContent = ind.name;
   document.getElementById('t-meta').textContent =
-    [ind.frequency, ind.unit].filter(Boolean).join('  \u00b7  ') + '   \u00b7   ' + ind.dates.length + ' observations';
+    [ind.frequency, ind.unit].filter(Boolean).join('  ·  ') +
+    '   ·   ' + ind.dates.length + ' observations';
   document.getElementById('t-desc').textContent = ind.description || '';
 
-  // cards
   const cards = document.getElementById('t-cards');
   cards.innerHTML = '';
-  [['canada','Canada','ca'],['us','United States','us']].forEach(([k,label,cls])=>{
+  const toShow = board === 'both'
+    ? [['canada','Canada','ca'],['us','United States','us']]
+    : board === 'ca' ? [['canada','Canada','ca']] : [['us','United States','us']];
+  toShow.forEach(([k, label, cls]) => {
     const m = ind[k];
     const c = document.createElement('div');
     c.className = 'card ' + cls;
-    c.innerHTML = '<div class="lbl">' + label + ' \u2014 latest</div>' +
+    c.innerHTML = '<div class="lbl">' + label + ' — latest</div>' +
       '<div class="val">' + fmt(m.latestValue) + '</div>' +
-      '<div class="sub">' + (m.latestDate ? 'as of ' + m.latestDate.slice(0,10) : 'no data') + '</div>';
+      '<div class="sub">' + (m.latestDate ? 'as of ' + m.latestDate.slice(0, 10) : 'no data') + '</div>';
     cards.appendChild(c);
   });
+  if (board === 'both' && !ind.dualAxis) {
+    const ca = ind.canada.latestValue, us = ind.us.latestValue;
+    const diff = (ca !== null && us !== null) ? Number(us) - Number(ca) : null;
+    const c = document.createElement('div');
+    c.className = 'card';
+    c.style.borderColor = 'rgba(129,140,248,0.3)';
+    c.innerHTML = '<div class="lbl" style="color:#818cf8">US − CA difference</div>' +
+      '<div class="val" style="color:#818cf8">' + fmt(diff) + '</div>' +
+      '<div class="sub">latest spread</div>';
+    cards.appendChild(c);
+  }
 
-  // sources
   document.getElementById('t-src').innerHTML =
-    'Sources &mdash; Canada: ' + (ind.canada.source || 'n/a') +
+    'Sources — Canada: ' + (ind.canada.source || 'n/a') +
     '<br>United States: ' + (ind.us.source || 'n/a');
+
+  const compBtn = document.getElementById('toggle-components');
+  const showBtn = board === 'both' && !ind.dualAxis;
+  compBtn.style.display = showBtn ? 'inline-block' : 'none';
+  if (!showBtn) { showComponents = false; compBtn.classList.remove('active'); compBtn.textContent = 'Show components'; }
 
   drawChart(ind);
 }
 
-function drawChart(ind){
-  if(chart) chart.destroy();
-  curDates = ind.dates;
-  const ctx = document.getElementById('chart');
-  const baseType = (ind.chartType === 'bar') ? 'bar' : 'line';
-  const datasets = [datasetFor(ind,'canada',COL.ca, ind.dualAxis ? 'yCA' : undefined)];
-  // only add US dataset if it has any data
-  if(ind.us.values.some(v=>v!==null && v!==undefined))
-    datasets.push(datasetFor(ind,'us',COL.us, ind.dualAxis ? 'yUS' : undefined));
+function drawChart(ind) {
+  if (chart) chart.destroy();
 
-  const scales = {
-    x:{ ticks:{ color:'#94a3b8', maxTicksLimit:14, autoSkip:true }, grid:{ color:'#1f2c40' } }
-  };
-  if(ind.dualAxis){
-    scales.yCA = { position:'left', ticks:{color:COL.ca}, grid:{color:'#1f2c40'},
-                   title:{display:true,text:'Canada ('+(ind.canada.unit||'')+')',color:COL.ca} };
-    scales.yUS = { position:'right', ticks:{color:COL.us}, grid:{drawOnChartArea:false},
-                   title:{display:true,text:'US ('+(ind.us.unit||'')+')',color:COL.us} };
-  } else {
-    scales.y = { ticks:{color:'#94a3b8'}, grid:{color:'#1f2c40'},
-                 title:{display:!!ind.unit, text:ind.unit, color:'#94a3b8'} };
+  let dates  = ind.dates;
+  let caVals = ind.canada.values.map(v => v === null ? null : Number(v));
+  let usVals = ind.us.values.map(v => v === null ? null : Number(v));
+
+  if (timeGran === 'yearly') {
+    const dc = decimateYearly(dates, caVals);
+    const du = decimateYearly(dates, usVals);
+    dates  = dc.dates;
+    caVals = dc.values;
+    usVals = du.values;
   }
 
-  chart = new Chart(ctx, {
-    type: baseType,
-    data: { labels: ind.dates, datasets },
+  curDates = dates;
+
+  const gridColor = 'rgba(255,255,255,0.04)';
+  const scales = {
+    x: { ticks: { color: '#8892b0', maxTicksLimit: 14, autoSkip: true }, grid: { color: gridColor } }
+  };
+
+  const datasets = [];
+
+  if (board === 'both') {
+    const isStep = ind.chartType === 'stepped';
+    if (ind.dualAxis || showComponents) {
+      // Fill-between view: both lines with shaded gap area.
+      // dualAxis indicators are normalized to index 100 so both can share one axis.
+      const plotCA = ind.dualAxis ? normalizeToIndex(caVals) : caVals;
+      const plotUS = ind.dualAxis ? normalizeToIndex(usVals) : usVals;
+      datasets.push({
+        label: 'Canada',
+        data: plotCA,
+        borderColor: COL.ca,
+        backgroundColor: 'transparent',
+        borderWidth: 2,
+        pointRadius: 0,
+        pointHoverRadius: 4,
+        tension: 0.25,
+        spanGaps: true,
+        stepped: isStep ? 'before' : false,
+        fill: { target: '+1', above: 'rgba(239,68,68,0.22)', below: 'rgba(59,130,246,0.22)' },
+      });
+      datasets.push({
+        label: 'United States',
+        data: plotUS,
+        borderColor: COL.us,
+        backgroundColor: 'transparent',
+        borderWidth: 2,
+        pointRadius: 0,
+        pointHoverRadius: 4,
+        tension: 0.25,
+        spanGaps: true,
+        stepped: isStep ? 'before' : false,
+        fill: false,
+      });
+      scales.y = { ticks: { color: '#8892b0' }, grid: { color: gridColor },
+        title: { display: true, text: ind.dualAxis ? 'Index (first period = 100)' : (ind.unit || ''), color: '#8892b0' } };
+    } else {
+      // Default: single purple US − CA difference line
+      const diffVals = usVals.map((v, i) =>
+        v !== null && caVals[i] !== null ? v - caVals[i] : null
+      );
+      datasets.push({
+        label: 'US − CA',
+        data: diffVals,
+        borderColor: '#818cf8',
+        backgroundColor: '#818cf822',
+        borderWidth: 2,
+        pointRadius: 0,
+        pointHoverRadius: 4,
+        tension: 0.25,
+        spanGaps: true,
+        fill: false,
+        stepped: isStep ? 'before' : false,
+      });
+      scales.y = { ticks: { color: '#8892b0' }, grid: { color: gridColor },
+        title: { display: !!ind.unit, text: ind.unit, color: '#8892b0' } };
+    }
+  } else {
+    const showCA = board !== 'us';
+    const showUS = board !== 'ca';
+    if (showCA)
+      datasets.push(datasetFor(ind, caVals, COL.ca, ind.dualAxis ? 'yCA' : undefined));
+    if (showUS && usVals.some(v => v !== null && v !== undefined))
+      datasets.push(datasetFor(ind, usVals, COL.us, ind.dualAxis ? 'yUS' : undefined));
+    if (ind.dualAxis) {
+      if (showCA)
+        scales.yCA = { position: 'left', ticks: { color: COL.ca }, grid: { color: gridColor },
+          title: { display: true, text: 'Canada (' + (ind.canada.unit || '') + ')', color: COL.ca } };
+      if (showUS)
+        scales.yUS = { position: showCA ? 'right' : 'left', ticks: { color: COL.us },
+          grid: { color: gridColor, drawOnChartArea: !showCA },
+          title: { display: true, text: 'US (' + (ind.us.unit || '') + ')', color: COL.us } };
+    } else {
+      scales.y = { ticks: { color: '#8892b0' }, grid: { color: gridColor },
+        title: { display: !!ind.unit, text: ind.unit, color: '#8892b0' } };
+    }
+  }
+
+  chart = new Chart(document.getElementById('chart'), {
+    type: ind.chartType === 'bar' ? 'bar' : 'line',
+    data: { labels: dates, datasets },
     options: {
-      responsive:true, maintainAspectRatio:false,
-      interaction:{ mode:'index', intersect:false },
-      plugins:{
-        legend:{ labels:{ color:'#e2e8f0', usePointStyle:true } },
-        tooltip:{ backgroundColor:'#0f172a', borderColor:'#334155', borderWidth:1 },
-        zoom:{
-          limits:{ x:{ min:'original', max:'original' } },
-          pan:{ enabled:true, mode:'x', modifierKey:'shift' },
-          zoom:{
-            mode:'x',
-            wheel:{ enabled:true, speed:0.1 },
-            drag:{ enabled:true, backgroundColor:'rgba(56,189,248,0.15)',
-                   borderColor:'rgba(56,189,248,0.6)', borderWidth:1 },
-            onZoomComplete:()=>clearRangeActive()
+      responsive: true,
+      maintainAspectRatio: false,
+      interaction: { mode: 'index', intersect: false },
+      plugins: {
+        legend: { labels: { color: '#eef2ff', usePointStyle: true } },
+        tooltip: { backgroundColor: '#0d1526', borderColor: 'rgba(255,255,255,0.1)', borderWidth: 1 },
+        zoom: {
+          limits: { x: { min: 'original', max: 'original' } },
+          pan: { enabled: true, mode: 'x', modifierKey: 'shift' },
+          zoom: {
+            mode: 'x',
+            wheel: { enabled: true, speed: 0.1 },
+            drag: { enabled: true, backgroundColor: 'rgba(129,140,248,0.15)',
+                    borderColor: 'rgba(129,140,248,0.6)', borderWidth: 1 },
+            onZoomComplete: () => clearRangeActive()
           }
         }
       },
@@ -218,50 +832,302 @@ function drawChart(ind){
   clearRangeActive();
 }
 
-function clearRangeActive(){
-  document.querySelectorAll('#range-grp button').forEach(b=>b.classList.remove('active'));
+function clearRangeActive() {
+  document.querySelectorAll('#range-grp button').forEach(b => b.classList.remove('active'));
 }
 
-// Restrict the x-axis (category indices) to the last `years` of data; 0 = all.
-function setRange(years, btn){
-  if(!chart || !curDates.length) return;
+function setRange(years, btn) {
+  if (!chart || !curDates.length) return;
   clearRangeActive();
-  if(!years){
-    if(chart.resetZoom) chart.resetZoom('none');
+  if (!years) {
+    if (chart.resetZoom) chart.resetZoom('none');
     return;
   }
-  if(btn) btn.classList.add('active');
-  const last = parseDate(curDates[curDates.length-1]);
-  const cutoff = new Date(last); cutoff.setUTCFullYear(cutoff.getUTCFullYear()-years);
+  if (btn) btn.classList.add('active');
+  const last = parseDate(curDates[curDates.length - 1]);
+  const cutoff = new Date(last);
+  cutoff.setUTCFullYear(cutoff.getUTCFullYear() - years);
   let startIdx = curDates.findIndex(d => parseDate(d) >= cutoff);
-  if(startIdx < 0) startIdx = 0;
-  chart.zoomScale('x', {min:startIdx, max:curDates.length-1}, 'default');
+  if (startIdx < 0) startIdx = 0;
+  chart.zoomScale('x', { min: startIdx, max: curDates.length - 1 }, 'default');
 }
 
-document.getElementById('range-grp').addEventListener('click', e=>{
-  const b = e.target.closest('button'); if(!b) return;
+document.getElementById('range-grp').addEventListener('click', e => {
+  const b = e.target.closest('button');
+  if (!b) return;
   setRange(+b.dataset.years, b);
 });
-document.getElementById('reset-zoom').addEventListener('click', ()=>{
+document.getElementById('reset-zoom').addEventListener('click', () => {
   clearRangeActive();
-  if(chart && chart.resetZoom) chart.resetZoom('none');
+  if (chart && chart.resetZoom) chart.resetZoom('none');
+});
+document.getElementById('sel-board').addEventListener('change', e => {
+  board = e.target.value;
+  showComponents = false;
+  const btn = document.getElementById('toggle-components');
+  btn.style.display = board === 'both' ? 'inline-block' : 'none';
+  btn.classList.remove('active');
+  btn.textContent = 'Show components';
+  select(active);
 });
 
-function init(db){
+document.getElementById('toggle-components').addEventListener('click', function() {
+  showComponents = !showComponents;
+  this.classList.toggle('active', showComponents);
+  this.textContent = showComponents ? 'Hide components' : 'Show components';
+  drawChart(DB.indicators[active]);
+});
+document.getElementById('sel-time').addEventListener('change', e => {
+  timeGran = e.target.value;
+  select(active);
+});
+document.getElementById('sel-variable').addEventListener('change', e => {
+  select(+e.target.value);
+});
+
+// ── Export (PNG · PDF · PPTX · XLSX) ──────────────────────────────────────────
+function slugify(s) {
+  return (s || 'chart').replace(/[^\w]+/g, '_').replace(/^_+|_+$/g, '').slice(0, 60) || 'chart';
+}
+function boardLabel() {
+  return board === 'both' ? 'US-Canada' : board === 'us' ? 'United States' : 'Canada';
+}
+function exportSubtitle(ind) {
+  const range = curDates.length ? (curDates[0] + ' \u2192 ' + curDates[curDates.length - 1]) : '';
+  return [boardLabel(), timeGran === 'yearly' ? 'Yearly' : 'Monthly', range].filter(Boolean).join('  \u00b7  ');
+}
+function exportSource(ind) {
+  const ca = ind.canada.source || 'n/a', us = ind.us.source || 'n/a';
+  return 'Sources \u2014 Canada: ' + ca + '   \u00b7   United States: ' + us;
+}
+function downloadDataURL(url, filename) {
+  const a = document.createElement('a');
+  a.href = url; a.download = filename;
+  document.body.appendChild(a); a.click(); a.remove();
+}
+function loadImage(src) {
+  return new Promise((res, rej) => { const im = new Image(); im.onload = () => res(im); im.onerror = rej; im.src = src; });
+}
+
+// Re-render the chart bitmap at higher pixel density, then restore.
+function captureChartDataURL(scale) {
+  const prev = chart.options.devicePixelRatio || window.devicePixelRatio || 1;
+  chart.options.devicePixelRatio = scale;
+  chart.resize();
+  const url = chart.toBase64Image('image/png', 1.0);
+  chart.options.devicePixelRatio = prev;
+  chart.resize();
+  return url;
+}
+
+// Composite the chart bitmap with a title + subtitle + source footer on the
+// dashboard's dark panel background. Returns { dataURL, w, h }.
+async function chartImage(opts) {
+  const o = opts || {};
+  const SCALE = o.scale || 2;
+  const bg = o.bg || '#0d1526';
+  const ind = DB.indicators[active];
+  const img = await loadImage(captureChartDataURL(SCALE));   // img is cssW*SCALE × cssH*SCALE
+  const pad = 28 * SCALE, headerH = 74 * SCALE, footerH = 40 * SCALE;
+  const W = img.width + pad * 2;
+  const H = img.height + headerH + footerH;
+  const c = document.createElement('canvas');
+  c.width = W; c.height = H;
+  const ctx = c.getContext('2d');
+  ctx.fillStyle = bg; ctx.fillRect(0, 0, W, H);
+  ctx.textBaseline = 'alphabetic';
+  const maxTextW = W - pad * 2;
+  const fitFont = (text, baseSize, weight, minSize) => {
+    let size = baseSize;
+    ctx.font = weight + ' ' + size + 'px Inter, -apple-system, sans-serif';
+    while (ctx.measureText(text).width > maxTextW && size > minSize) {
+      size -= 1; ctx.font = weight + ' ' + size + 'px Inter, -apple-system, sans-serif';
+    }
+  };
+  ctx.fillStyle = '#eef2ff';
+  fitFont(ind.name, 22 * SCALE, '600', 12 * SCALE);
+  ctx.fillText(ind.name, pad, 38 * SCALE);
+  ctx.fillStyle = '#8892b0';
+  fitFont(exportSubtitle(ind), 13 * SCALE, '400', 9 * SCALE);
+  ctx.fillText(exportSubtitle(ind), pad, 60 * SCALE);
+  ctx.drawImage(img, pad, headerH, img.width, img.height);
+  ctx.fillStyle = '#8892b0';
+  fitFont(exportSource(ind), 11 * SCALE, '400', 8 * SCALE);
+  ctx.fillText(exportSource(ind), pad, headerH + img.height + 26 * SCALE);
+  return { dataURL: c.toDataURL('image/png'), w: W, h: H };
+}
+
+// Data series matching the current chart view (applies yearly decimation).
+function currentSeries(ind) {
+  let dates = ind.dates;
+  let ca = ind.canada.values.map(v => v === null ? null : Number(v));
+  let us = ind.us.values.map(v => v === null ? null : Number(v));
+  if (timeGran === 'yearly') {
+    const dc = decimateYearly(dates, ca);
+    const du = decimateYearly(dates, us);
+    dates = dc.dates; ca = dc.values; us = du.values;
+  }
+  return { dates, ca, us };
+}
+
+async function exportPNG() {
+  const ind = DB.indicators[active];
+  const { dataURL } = await chartImage({});
+  downloadDataURL(dataURL, slugify(ind.name) + '.png');
+}
+
+async function exportPDF() {
+  const ind = DB.indicators[active];
+  const { dataURL, w, h } = await chartImage({});
+  const JsPDF = window.jspdf.jsPDF;
+  const pdf = new JsPDF({ orientation: w >= h ? 'landscape' : 'portrait', unit: 'pt', format: 'a4' });
+  const pw = pdf.internal.pageSize.getWidth(), ph = pdf.internal.pageSize.getHeight();
+  const margin = 24;
+  const ratio = Math.min((pw - margin * 2) / w, (ph - margin * 2) / h);
+  const dw = w * ratio, dh = h * ratio;
+  pdf.setFillColor(10, 15, 30);
+  pdf.rect(0, 0, pw, ph, 'F');
+  pdf.addImage(dataURL, 'PNG', (pw - dw) / 2, (ph - dh) / 2, dw, dh);
+  pdf.save(slugify(ind.name) + '.pdf');
+}
+
+async function exportPPTX() {
+  const ind = DB.indicators[active];
+  const { dataURL, w, h } = await chartImage({});
+  const pptx = new PptxGenJS();
+  pptx.defineLayout({ name: 'WIDE', width: 13.333, height: 7.5 });
+  pptx.layout = 'WIDE';
+  const slide = pptx.addSlide();
+  slide.background = { color: '0A0F1E' };
+  const slideW = 13.333, slideH = 7.5, m = 0.4;
+  const ratio = Math.min((slideW - m * 2) / w, (slideH - m * 2) / h);
+  const dw = w * ratio, dh = h * ratio;
+  slide.addImage({ data: dataURL, x: (slideW - dw) / 2, y: (slideH - dh) / 2, w: dw, h: dh });
+  await pptx.writeFile({ fileName: slugify(ind.name) + '.pptx' });
+}
+
+function exportXLSX() {
+  const ind = DB.indicators[active];
+  const { dates, ca, us } = currentSeries(ind);
+  const caUnit = ind.canada.unit || ind.unit || '';
+  const usUnit = ind.us.unit || ind.unit || '';
+  const aoa = [
+    ['Indicator', ind.name],
+    ['Board', boardLabel()],
+    ['Frequency', timeGran === 'yearly' ? 'yearly' : (ind.frequency || 'monthly')],
+    ['Canada unit', caUnit],
+    ['United States unit', usUnit],
+    ['Canada source', ind.canada.source || ''],
+    ['United States source', ind.us.source || ''],
+    ['Generated', DB.generated || ''],
+    [],
+    ['Date', 'Canada (' + caUnit + ')', 'United States (' + usUnit + ')', 'US \u2212 CA'],
+  ];
+  for (let i = 0; i < dates.length; i++) {
+    const c = ca[i], u = us[i];
+    const diff = (c != null && u != null) ? (u - c) : null;
+    aoa.push([dates[i], c, u, diff]);
+  }
+  const ws = XLSX.utils.aoa_to_sheet(aoa);
+  ws['!cols'] = [{ wch: 12 }, { wch: 22 }, { wch: 22 }, { wch: 14 }];
+  const wb = XLSX.utils.book_new();
+  const sheetName = ind.name.replace(/[\\\/\?\*\[\]:]/g, ' ').slice(0, 31);
+  XLSX.utils.book_append_sheet(wb, ws, sheetName);
+  XLSX.writeFile(wb, slugify(ind.name) + '.xlsx');
+}
+
+const exportBtn = document.getElementById('export-btn');
+const exportMenu = document.getElementById('export-menu');
+function closeExportMenu() { exportMenu.classList.remove('open'); exportBtn.classList.remove('open'); }
+function syncExportAvailability() {
+  const has = {
+    png: true,
+    pdf: !!(window.jspdf && window.jspdf.jsPDF),
+    pptx: typeof PptxGenJS !== 'undefined',
+    xlsx: typeof XLSX !== 'undefined',
+  };
+  exportMenu.querySelectorAll('button').forEach(b => {
+    const ok = has[b.dataset.fmt];
+    b.disabled = !ok;
+    b.title = ok ? '' : 'Export library not available';
+  });
+}
+exportBtn.addEventListener('click', e => {
+  e.stopPropagation();
+  const open = exportMenu.classList.toggle('open');
+  exportBtn.classList.toggle('open', open);
+});
+document.addEventListener('click', e => { if (!e.target.closest('.export-wrap')) closeExportMenu(); });
+document.addEventListener('keydown', e => { if (e.key === 'Escape') closeExportMenu(); });
+exportMenu.addEventListener('click', async e => {
+  const b = e.target.closest('button');
+  if (!b || b.disabled) return;
+  const fmt = b.dataset.fmt;
+  closeExportMenu();
+  const prevTxt = exportBtn.innerHTML;
+  exportBtn.innerHTML = 'Exporting\u2026';
+  try {
+    if (fmt === 'png') await exportPNG();
+    else if (fmt === 'pdf') await exportPDF();
+    else if (fmt === 'pptx') await exportPPTX();
+    else if (fmt === 'xlsx') exportXLSX();
+  } catch (err) {
+    console.error('Export failed:', err);
+    alert('Export failed: ' + (err && err.message ? err.message : err));
+  } finally {
+    exportBtn.innerHTML = prevTxt;
+  }
+});
+syncExportAvailability();
+
+function openDrawer() {
+  document.getElementById('drawer').classList.add('open');
+  document.getElementById('drawer-overlay').classList.add('open');
+  document.getElementById('hamburger-btn').classList.add('open');
+}
+function closeDrawer() {
+  document.getElementById('drawer').classList.remove('open');
+  document.getElementById('drawer-overlay').classList.remove('open');
+  document.getElementById('hamburger-btn').classList.remove('open');
+}
+document.getElementById('hamburger-btn').addEventListener('click', openDrawer);
+document.getElementById('drawer-close').addEventListener('click', closeDrawer);
+document.getElementById('drawer-overlay').addEventListener('click', closeDrawer);
+
+function buildDrawer() {
+  const list = document.getElementById('drawer-list');
+  DB.indicators.forEach(ind => {
+    const url = CONFLUENCE[ind.name] || '';
+    const a = document.createElement('a');
+    a.className = 'drawer-item' + (url ? '' : ' no-link');
+    a.href = url || '#';
+    if (url) { a.target = '_blank'; a.rel = 'noopener noreferrer'; }
+    else { a.addEventListener('click', e => e.preventDefault()); }
+    a.innerHTML =
+      '<div>' +
+        '<div class="di-name">' + ind.name + '</div>' +
+        '<div class="di-type">' + (ind.frequency || '') + (ind.unit ? ' &middot; ' + ind.unit : '') + '</div>' +
+      '</div>' +
+      '<span class="di-link">' + (url ? 'Open &rarr;' : 'No page yet') + '</span>';
+    list.appendChild(a);
+  });
+}
+
+function init(db) {
   DB = db;
+  normalizeGFCF(db);
+  buildDrawer();
   document.getElementById('foot').textContent =
-    'Source: ' + db.source + '  \u00b7  generated ' + db.generated +
-    '  \u00b7  ' + db.indicators.length + ' indicators';
-  buildNav();
+    'Source: ' + db.source + '  ·  generated ' + db.generated +
+    '  ·  ' + db.indicators.length + ' indicators';
+  buildDropdowns();
   select(0);
 }
 
 if (window.MACRO_DATA) {
-  // Embedded data (works when opened directly via file:// or over HTTP).
   init(window.MACRO_DATA);
 } else {
-  // Fallback: fetch when served over HTTP without data.js.
-  fetch('data.json').then(r=>r.json()).then(init).catch(e=>{
+  fetch('data.json').then(r => r.json()).then(init).catch(() => {
     document.querySelector('main').innerHTML =
       '<p style="color:#ef4444">Could not load data. Re-run <code>python3 generate_data.py</code>, ' +
       'or serve this folder over HTTP (see README).</p>';
