@@ -442,6 +442,309 @@
     border-top: 1px solid var(--line);
     margin-top: 4px;
   }
+
+  /* ── News Desk emblem button (header) ── */
+  .news-btn {
+    position: relative;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    margin-left: auto;
+    flex-shrink: 0;
+    background: linear-gradient(90deg, var(--accent), var(--accent2));
+    border: 1px solid var(--accent);
+    color: #0a0f1e;
+    font-family: inherit;
+    font-size: 13px;
+    font-weight: 700;
+    letter-spacing: 0.3px;
+    line-height: 1;
+    height: 38px;
+    padding: 0 16px;
+    border-radius: 8px;
+    cursor: pointer;
+    transition: 0.12s;
+    box-shadow: 0 2px 10px rgba(129,140,248,0.25);
+  }
+  .news-btn:hover { filter: brightness(1.08); box-shadow: 0 3px 14px rgba(129,140,248,0.4); }
+  .news-btn.open { filter: brightness(0.95); }
+  .news-btn .news-btn-icon { font-size: 15px; }
+  .news-btn .unread {
+    position: absolute;
+    top: -4px; right: -4px;
+    width: 10px; height: 10px;
+    border-radius: 50%;
+    background: var(--ca);
+    border: 2px solid var(--panel2);
+    box-shadow: 0 0 0 0 rgba(239,68,68,0.7);
+    animation: news-pulse 1.8s ease-out infinite;
+  }
+  @keyframes news-pulse {
+    0%   { box-shadow: 0 0 0 0 rgba(239,68,68,0.55); }
+    70%  { box-shadow: 0 0 0 6px rgba(239,68,68,0); }
+    100% { box-shadow: 0 0 0 0 rgba(239,68,68,0); }
+  }
+
+  /* ── News Desk overlay + window ── */
+  .news-overlay {
+    position: fixed;
+    inset: 0;
+    background: rgba(0,0,0,0.55);
+    backdrop-filter: blur(2px);
+    z-index: 200;
+    display: none;
+    align-items: center;
+    justify-content: center;
+    padding: 24px;
+    opacity: 0;
+    transition: opacity 0.18s ease;
+  }
+  .news-overlay.show { display: flex; opacity: 1; }
+  .news-window {
+    width: min(960px, 92vw);
+    height: min(82vh, 860px);
+    background: var(--panel2);
+    border: 1px solid var(--line);
+    border-radius: 14px;
+    box-shadow: 0 24px 70px rgba(0,0,0,0.6);
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+    transform: scale(0.96);
+    transition: transform 0.18s cubic-bezier(0.4,0,0.2,1);
+  }
+  .news-overlay.show .news-window { transform: scale(1); }
+
+  .news-titlebar {
+    display: flex;
+    align-items: center;
+    gap: 14px;
+    padding: 14px 18px;
+    border-bottom: 1px solid var(--line);
+    background: linear-gradient(90deg, rgba(129,140,248,0.16), rgba(56,189,248,0.10));
+    flex-shrink: 0;
+  }
+  .news-title {
+    display: flex;
+    align-items: center;
+    gap: 9px;
+    font-weight: 700;
+    font-size: 13px;
+    letter-spacing: 1.4px;
+    text-transform: uppercase;
+  }
+  .news-live-dot {
+    width: 9px; height: 9px;
+    border-radius: 50%;
+    background: var(--ca);
+    box-shadow: 0 0 0 0 rgba(239,68,68,0.7);
+    animation: news-pulse 1.6s ease-out infinite;
+  }
+  .news-filter {
+    display: flex;
+    gap: 4px;
+    margin-left: auto;
+    background: rgba(255,255,255,0.04);
+    border: 1px solid var(--line);
+    border-radius: 8px;
+    padding: 3px;
+  }
+  .news-filter button {
+    background: none;
+    border: none;
+    color: var(--muted);
+    font: inherit;
+    font-size: 11px;
+    font-weight: 600;
+    letter-spacing: 0.4px;
+    padding: 4px 10px;
+    border-radius: 6px;
+    cursor: pointer;
+    transition: 0.12s;
+  }
+  .news-filter button:hover { color: var(--text); }
+  .news-filter button.active { color: var(--text); background: var(--panel); }
+  .news-close {
+    background: none;
+    border: 1px solid var(--line);
+    color: var(--muted);
+    width: 32px; height: 32px;
+    border-radius: 8px;
+    font-size: 18px;
+    line-height: 1;
+    cursor: pointer;
+    transition: 0.12s;
+    flex-shrink: 0;
+  }
+  .news-close:hover { color: var(--text); border-color: rgba(255,255,255,0.18); background: var(--panel); }
+
+  /* ── Feed rows ── */
+  .news-body {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    min-height: 0;
+  }
+  .feed {
+    display: flex;
+    flex-direction: column;
+    min-height: 0;
+    border-bottom: 1px solid var(--line);
+  }
+  .feed.macro  { flex: 40; }
+  .feed.gov    { flex: 38; }
+  .feed.social { flex: 22; border-bottom: none; }
+  .feed-head {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 11px 18px 9px;
+    flex-shrink: 0;
+  }
+  .feed-head h3 {
+    margin: 0;
+    font-size: 11px;
+    font-weight: 700;
+    letter-spacing: 1px;
+    text-transform: uppercase;
+    color: var(--muted);
+  }
+  .feed-head .feed-icon { font-size: 14px; }
+  .feed-count {
+    font-size: 10px;
+    color: var(--muted);
+    background: rgba(255,255,255,0.05);
+    border: 1px solid var(--line);
+    border-radius: 20px;
+    padding: 1px 8px;
+  }
+  .feed-list {
+    overflow-y: auto;
+    padding: 0 14px 12px;
+    display: flex;
+    flex-direction: column;
+    gap: 7px;
+    min-height: 0;
+  }
+  .feed-list::-webkit-scrollbar { width: 8px; }
+  .feed-list::-webkit-scrollbar-thumb { background: rgba(255,255,255,0.10); border-radius: 4px; }
+
+  .news-item[hidden] { display: none; }
+
+  /* Feed loading / error states */
+  .feed-status {
+    display: flex;
+    align-items: center;
+    gap: 9px;
+    padding: 14px 4px;
+    color: var(--muted);
+    font-size: 12.5px;
+  }
+  .feed-status.error { color: #fca5a5; }
+  .feed-spinner {
+    width: 13px; height: 13px;
+    border: 2px solid rgba(255,255,255,0.18);
+    border-top-color: var(--accent2);
+    border-radius: 50%;
+    animation: feed-spin 0.7s linear infinite;
+    flex-shrink: 0;
+  }
+  @keyframes feed-spin { to { transform: rotate(360deg); } }
+
+  /* Macro news cards */
+  .macro-card {
+    display: flex;
+    gap: 11px;
+    padding: 10px 12px;
+    background: var(--panel);
+    border: 1px solid var(--line);
+    border-left: 3px solid var(--line);
+    border-radius: 8px;
+  }
+  .macro-card.us { border-left-color: var(--us); }
+  .macro-card.ca { border-left-color: var(--ca); }
+  .macro-card .body { flex: 1; min-width: 0; }
+  .macro-card .headline { font-size: 13.5px; font-weight: 600; line-height: 1.35; }
+  .macro-card .dek { font-size: 12px; color: var(--muted); margin-top: 3px; line-height: 1.4; }
+  .macro-card .meta { display: flex; align-items: center; gap: 8px; margin-top: 7px; }
+
+  .src-badge {
+    font-size: 10px; font-weight: 700; letter-spacing: 0.4px;
+    padding: 2px 7px; border-radius: 4px;
+    background: rgba(255,255,255,0.06); color: var(--text);
+    flex-shrink: 0;
+  }
+  .src-badge.cnbc { color: #f8b912; background: rgba(248,185,18,0.14); }
+  .src-badge.bnn  { color: #2dd4bf; background: rgba(45,212,191,0.14); }
+  .src-badge.mw   { color: #22c55e; background: rgba(34,197,94,0.14); }
+  .time-ago { font-size: 11px; color: var(--muted); }
+
+  /* Gov updates — structured rows */
+  .gov-row {
+    display: grid;
+    grid-template-columns: auto 1fr auto;
+    align-items: center;
+    gap: 10px;
+    padding: 9px 12px;
+    background: var(--panel);
+    border: 1px solid var(--line);
+    border-radius: 8px;
+  }
+  .gov-agency {
+    display: flex; align-items: center; gap: 7px;
+    font-size: 12px; font-weight: 600;
+    min-width: 132px;
+  }
+  .flag { font-size: 13px; }
+  .gov-mid { min-width: 0; }
+  .gov-headline { font-size: 13px; font-weight: 500; line-height: 1.3; }
+  .gov-sub { font-size: 11px; color: var(--muted); margin-top: 2px; }
+  .pill {
+    font-size: 9.5px; font-weight: 700; letter-spacing: 0.5px; text-transform: uppercase;
+    padding: 2px 7px; border-radius: 4px; flex-shrink: 0;
+  }
+  .pill.data   { color: var(--accent2); background: rgba(56,189,248,0.14); }
+  .pill.policy { color: #f59e0b; background: rgba(245,158,11,0.15); }
+  .gov-val { text-align: right; font-size: 13px; font-weight: 700; }
+  .gov-val .prev { display: block; font-size: 10.5px; font-weight: 500; color: var(--muted); }
+  .delta-up   { color: #22c55e; }
+  .delta-down { color: var(--ca); }
+
+  /* Social strip — compact */
+  .social-post {
+    display: flex; align-items: flex-start; gap: 9px;
+    padding: 8px 10px;
+    background: var(--panel);
+    border: 1px solid var(--line);
+    border-radius: 8px;
+    font-size: 12px;
+  }
+  .avatar {
+    width: 26px; height: 26px; border-radius: 50%;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 11px; font-weight: 700; color: var(--text);
+    background: linear-gradient(135deg, var(--accent), var(--accent2));
+    flex-shrink: 0;
+  }
+  .social-body { flex: 1; min-width: 0; }
+  .social-meta { display: flex; align-items: center; gap: 6px; }
+  .handle { font-weight: 600; font-size: 12px; }
+  .platform { font-size: 11px; color: var(--muted); }
+  .social-text { font-size: 12px; color: var(--text); margin-top: 2px; line-height: 1.35; }
+  .social-actions { display: flex; gap: 6px; align-items: center; flex-shrink: 0; }
+  .share-btn {
+    background: none; border: 1px solid var(--line); color: var(--muted);
+    font: inherit; font-size: 11px; padding: 3px 8px; border-radius: 6px; cursor: pointer;
+    transition: 0.12s;
+  }
+  .share-btn:hover { color: var(--text); border-color: rgba(255,255,255,0.18); background: rgba(255,255,255,0.04); }
+
+  @media (max-width: 640px) {
+    .news-window { height: 88vh; width: 94vw; }
+    .gov-row { grid-template-columns: auto 1fr; }
+    .gov-val { grid-column: 2; text-align: left; }
+    .gov-agency { min-width: 0; }
+  }
 </style>
 </head>
 <body>
@@ -456,6 +759,9 @@
       <span class="legend-dot" style="background:var(--us)"></span>United States
     </p>
   </div>
+  <button class="news-btn" id="news-btn" aria-label="Open News Desk" title="News Desk">
+    <span class="news-btn-icon">&#128240;</span>News<span class="unread"></span>
+  </button>
 </header>
 
 <!-- Slide-out drawer -->
@@ -1133,6 +1439,226 @@ if (window.MACRO_DATA) {
       'or serve this folder over HTTP (see README).</p>';
   });
 }
+
+// ── News Desk — live LLM agents via local backend ───────────────────────────
+const NEWS_API = (location.hostname === 'localhost' || location.hostname === '127.0.0.1')
+  ? 'http://' + location.hostname + ':8181'
+  : 'http://localhost:8181';
+
+// In-memory cache for the session: { macro:{items}|{error}, gov:..., social:... }
+const newsCache = { macro: null, gov: null, social: null };
+const FEEDS = ['macro', 'gov', 'social'];
+
+function esc(s) {
+  return String(s == null ? '' : s)
+    .replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;');
+}
+function linkOpen(url) {
+  return url ? '<a href="' + esc(url) + '" target="_blank" rel="noopener noreferrer" style="color:inherit;text-decoration:none">' : '';
+}
+function linkClose(url) { return url ? '</a>' : ''; }
+function timeAgo(t) { return '<span class="time-ago">' + esc(t) + '</span>'; }
+
+function setFeedStatus(category, html) {
+  document.getElementById(category + '-list').innerHTML = html;
+}
+function loadingHtml(label) {
+  return '<div class="feed-status">' +
+    '<span class="feed-spinner"></span>' + esc(label) + '</div>';
+}
+function errorHtml(msg) {
+  return '<div class="feed-status error">' + esc(msg) + '</div>';
+}
+
+function renderMacro(region) {
+  const state = newsCache.macro;
+  const countEl = document.getElementById('macro-count');
+  if (!state) { setFeedStatus('macro', loadingHtml('Researching macro headlines…')); countEl.textContent = '…'; return; }
+  if (state.error) { setFeedStatus('macro', errorHtml(state.error)); countEl.textContent = '!'; return; }
+  const cls = { CNBC:'cnbc', BNN:'bnn', 'BNN BLOOMBERG':'bnn', MARKETWATCH:'mw', MW:'mw' };
+  const items = (state.items || []).filter(d => region === 'all' || d.region === region);
+  countEl.textContent = items.length;
+  if (!items.length) { setFeedStatus('macro', errorHtml('No items.')); return; }
+  document.getElementById('macro-list').innerHTML = items.map(d => {
+    const badgeCls = cls[String(d.source || '').toUpperCase()] || '';
+    return '<article class="macro-card ' + (d.region === 'ca' ? 'ca' : 'us') + '">' +
+      '<div class="body">' +
+        '<div class="headline">' + linkOpen(d.url) + esc(d.headline) + linkClose(d.url) + '</div>' +
+        (d.dek ? '<div class="dek">' + esc(d.dek) + '</div>' : '') +
+        '<div class="meta">' +
+          '<span class="src-badge ' + badgeCls + '">' + esc(d.source || 'News') + '</span>' +
+          timeAgo(d.time) +
+        '</div>' +
+      '</div>' +
+    '</article>';
+  }).join('');
+}
+
+function renderGov(region) {
+  const state = newsCache.gov;
+  const countEl = document.getElementById('gov-count');
+  if (!state) { setFeedStatus('gov', loadingHtml('Checking US & Canada gov releases…')); countEl.textContent = '…'; return; }
+  if (state.error) { setFeedStatus('gov', errorHtml(state.error)); countEl.textContent = '!'; return; }
+  const arrow = { up:'\u25B2', down:'\u25BC', flat:'' };
+  const dcls  = { up:'delta-up', down:'delta-down', flat:'' };
+  const flagFor = (r) => r === 'ca' ? '\u{1F1E8}\u{1F1E6}' : '\u{1F1FA}\u{1F1F8}';
+  const items = (state.items || []).filter(d => region === 'all' || d.region === region);
+  countEl.textContent = items.length;
+  if (!items.length) { setFeedStatus('gov', errorHtml('No items.')); return; }
+  document.getElementById('gov-list').innerHTML = items.map(d => {
+    const kind = (d.kind === 'policy') ? 'policy' : 'data';
+    const dir = ['up', 'down', 'flat'].includes(d.dir) ? d.dir : 'flat';
+    return '<div class="gov-row">' +
+      '<div class="gov-agency"><span class="flag">' + flagFor(d.region) + '</span>' + esc(d.agency || '') + '</div>' +
+      '<div class="gov-mid">' +
+        '<div class="gov-headline">' + linkOpen(d.url) + esc(d.headline) + linkClose(d.url) +
+          ' <span class="pill ' + kind + '">' + kind + '</span></div>' +
+        '<div class="gov-sub">' + esc(d.sub || '') + (d.time ? ' &middot; ' + esc(d.time) : '') + '</div>' +
+      '</div>' +
+      (d.val ? '<div class="gov-val ' + dcls[dir] + '">' + arrow[dir] + ' ' + esc(d.val) +
+        (d.prev ? '<span class="prev">' + esc(d.prev) + '</span>' : '') + '</div>' : '<div></div>') +
+    '</div>';
+  }).join('');
+}
+
+function renderSocial(region) {
+  const state = newsCache.social;
+  const countEl = document.getElementById('social-count');
+  if (!state) { setFeedStatus('social', loadingHtml('Scanning social chatter…')); countEl.textContent = '…'; return; }
+  if (state.error) { setFeedStatus('social', errorHtml(state.error)); countEl.textContent = '!'; return; }
+  const items = (state.items || []).filter(d => region === 'all' || d.region === region);
+  countEl.textContent = items.length;
+  if (!items.length) { setFeedStatus('social', errorHtml('No items.')); return; }
+  document.getElementById('social-list').innerHTML = items.map(d => {
+    const handle = String(d.handle || '?');
+    const initial = handle.replace('@', '').charAt(0).toUpperCase() || '?';
+    return '<div class="social-post">' +
+      '<div class="avatar">' + esc(initial) + '</div>' +
+      '<div class="social-body">' +
+        '<div class="social-meta">' +
+          '<span class="handle">' + esc(handle) + '</span>' +
+          '<span class="platform">&middot; ' + esc(d.platform || '') + (d.time ? ' &middot; ' + esc(d.time) : '') + '</span>' +
+        '</div>' +
+        '<div class="social-text">' + esc(d.text || '') + '</div>' +
+      '</div>' +
+      '<div class="social-actions">' +
+        (d.url ? '<a class="share-btn" href="' + esc(d.url) + '" target="_blank" rel="noopener noreferrer">Open</a>' : '') +
+      '</div>' +
+    '</div>';
+  }).join('');
+}
+
+let newsRegion = 'all';
+const RENDERERS = { macro: renderMacro, gov: renderGov, social: renderSocial };
+function renderFeed(category) { RENDERERS[category](newsRegion); }
+function renderNews() { FEEDS.forEach(renderFeed); }
+
+async function fetchFeed(category) {
+  newsCache[category] = null;       // -> loading state
+  renderFeed(category);
+  const controller = new AbortController();
+  const timer = setTimeout(() => controller.abort(), 200000);
+  try {
+    const r = await fetch(NEWS_API + '/api/news/' + category, { signal: controller.signal });
+    const data = await r.json();
+    newsCache[category] = data.ok
+      ? { items: data.items || [] }
+      : { error: data.error || 'Agent error.' };
+  } catch (e) {
+    newsCache[category] = { error: 'News agents offline — start the backend: ./start_news_agents.command' };
+  } finally {
+    clearTimeout(timer);
+    renderFeed(category);
+  }
+}
+
+function fetchAllFeeds() { FEEDS.forEach(fetchFeed); }   // fire the three agents in parallel
+
+function initNewsDesk() {
+  const btn = document.getElementById('news-btn');
+  const overlay = document.getElementById('news-overlay');
+  const closeBtn = document.getElementById('news-close');
+  const filter = document.getElementById('news-filter');
+  const refreshBtn = document.getElementById('news-refresh');
+  if (!btn || !overlay) return;
+  let hasFetched = false;
+
+  const open = () => {
+    overlay.classList.add('show');
+    btn.classList.add('open');
+    btn.querySelector('.unread')?.style.setProperty('display', 'none');
+    renderNews();
+    if (!hasFetched) { hasFetched = true; fetchAllFeeds(); }   // fire agents on first open
+  };
+  const close = () => {
+    overlay.classList.remove('show');
+    btn.classList.remove('open');
+  };
+
+  btn.addEventListener('click', () => overlay.classList.contains('show') ? close() : open());
+  closeBtn.addEventListener('click', close);
+  overlay.addEventListener('click', (e) => { if (e.target === overlay) close(); });
+  document.addEventListener('keydown', (e) => { if (e.key === 'Escape' && overlay.classList.contains('show')) close(); });
+
+  if (refreshBtn) refreshBtn.addEventListener('click', fetchAllFeeds);
+
+  filter.addEventListener('click', (e) => {
+    const b = e.target.closest('button[data-region]');
+    if (!b) return;
+    newsRegion = b.dataset.region;
+    filter.querySelectorAll('button').forEach(x => x.classList.toggle('active', x === b));
+    renderNews();
+  });
+}
+
+if (document.readyState === 'loading') {
+  document.addEventListener('DOMContentLoaded', initNewsDesk);
+} else {
+  initNewsDesk();
+}
 </script>
+<!-- News Desk overlay -->
+<div class="news-overlay" id="news-overlay" role="dialog" aria-modal="true" aria-label="News Desk">
+  <div class="news-window">
+    <div class="news-titlebar">
+      <div class="news-title"><span class="news-live-dot"></span>News Desk</div>
+      <div class="news-filter" id="news-filter">
+        <button data-region="all" class="active">All</button>
+        <button data-region="us">US</button>
+        <button data-region="ca">CA</button>
+      </div>
+      <button class="news-close" id="news-refresh" aria-label="Refresh feeds" title="Re-run agents" style="font-size:15px">&#8635;</button>
+      <button class="news-close" id="news-close" aria-label="Close">&times;</button>
+    </div>
+    <div class="news-body">
+      <section class="feed macro">
+        <div class="feed-head">
+          <span class="feed-icon">&#128202;</span>
+          <h3>Macro News</h3>
+          <span class="feed-count" id="macro-count"></span>
+        </div>
+        <div class="feed-list" id="macro-list"></div>
+      </section>
+      <section class="feed gov">
+        <div class="feed-head">
+          <span class="feed-icon">&#127963;</span>
+          <h3>Government Updates</h3>
+          <span class="feed-count" id="gov-count"></span>
+        </div>
+        <div class="feed-list" id="gov-list"></div>
+      </section>
+      <section class="feed social">
+        <div class="feed-head">
+          <span class="feed-icon">&#128172;</span>
+          <h3>Social</h3>
+          <span class="feed-count" id="social-count"></span>
+        </div>
+        <div class="feed-list" id="social-list"></div>
+      </section>
+    </div>
+  </div>
+</div>
+
 </body>
 </html>
