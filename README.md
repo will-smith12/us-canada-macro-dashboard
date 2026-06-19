@@ -72,6 +72,34 @@ The agent sources `~/.config/macro-dashboard/env` and serves on :8181 with `Keep
 `RunAtLoad`. After editing `news_agents.py`, restart it with:
 `launchctl kickstart -k gui/$(id -u)/com.willsmith.newsdesk`.
 
+### Make the News Desk work for everyone (host the backend)
+
+The local/launchd backend only serves *your* machine. To let visitors of the published
+GitHub Pages site load news, host the backend somewhere with HTTPS and point the frontend
+`NEWS_API` at it. The backend is container-ready (see `Dockerfile`) and reads these env vars:
+
+| Var | Purpose | Default |
+| --- | --- | --- |
+| `GEMINI_API_KEY` | Gemini key (keep server-side; never in the static site) | — (required) |
+| `PORT` | Port to bind (Cloud Run/Render set this) | `NEWS_PORT` or `8181` |
+| `NEWS_HOST` | Bind address (use `0.0.0.0` in a container) | `127.0.0.1` |
+| `NEWS_ALLOWED_ORIGIN` | CORS allow-list, comma-separated (or `*`) | `*` |
+| `NEWS_TOKEN` | If set, `/api/news/*` requires `X-News-Token` (or `?token=`) | _(off)_ |
+| `NEWS_RATE_LIMIT` / `NEWS_RATE_WINDOW` | Per-IP rate limit (requests / seconds) | `30` / `60` |
+
+> **Token caveat:** the frontend is public, so any token it sends is visible in page source —
+> it deters drive-by bots but is not true secrecy. It is combined with a CORS allow-list and a
+> per-IP rate limit to protect the Gemini quota.
+
+Example (Google Cloud Run):
+
+```bash
+gcloud run deploy news-desk --source . --region us-central1 --allow-unauthenticated \
+  --set-env-vars NEWS_HOST=0.0.0.0,NEWS_ALLOWED_ORIGIN=https://will-smith12.github.io \
+  --set-env-vars GEMINI_API_KEY=YOUR_KEY,NEWS_TOKEN=YOUR_TOKEN
+# then set NEWS_API in index.html to the printed https://news-desk-xxxx.run.app URL
+```
+
 
 ## Tabs (one chart each)
 

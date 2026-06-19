@@ -1,0 +1,14 @@
+# Only the backend is needed in the image; keep the static site + tooling out.
+.git
+.gitignore
+__pycache__/
+*.pyc
+node_modules/
+logs/
+*.zip
+.DS_Store
+index.html
+data.js
+data.json
+README.md
+start_news_agents.command

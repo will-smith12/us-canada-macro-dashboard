@@ -11,10 +11,15 @@ category and returns them as JSON the front-end renders.
   GET /api/news/social     -> {ok, category, items:[...]}
 
 Config via environment:
-  GEMINI_API_KEY   (required)  Google Gemini API key (free: https://aistudio.google.com/apikey).
-  GEMINI_MODEL     (optional)  Model id. Default: gemini-2.5-flash.
-  NEWS_PORT        (optional)  Port to listen on. Default: 8181.
-  NEWS_MAX_ITEMS   (optional)  Max items per feed. Default: 8.
+  GEMINI_API_KEY       (required)  Google Gemini API key (free: https://aistudio.google.com/apikey).
+  GEMINI_MODEL         (optional)  Model id. Default: gemini-2.5-flash.
+  PORT / NEWS_PORT     (optional)  Port to listen on. PORT wins (Cloud Run/Render set it). Default: 8181.
+  NEWS_HOST            (optional)  Bind address. Default: 127.0.0.1 (use 0.0.0.0 in a container).
+  NEWS_MAX_ITEMS       (optional)  Max items per feed. Default: 8.
+  NEWS_ALLOWED_ORIGIN  (optional)  CORS allow-list (comma-separated origins, or *). Default: *.
+  NEWS_TOKEN           (optional)  If set, requests must send it via X-News-Token header or ?token=.
+  NEWS_RATE_LIMIT      (optional)  Max requests per IP per window. Default: 30.
+  NEWS_RATE_WINDOW     (optional)  Rate-limit window in seconds. Default: 60.
 
 No secrets are stored in this file; the key is read from the environment at runtime.
 """
@@ -23,10 +28,12 @@ import json
 import os
 import re
 import sys
+import threading
 import time
+from collections import defaultdict, deque
 from datetime import datetime, timezone
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
-from urllib.parse import urlparse
+from urllib.parse import urlparse, parse_qs
 
 import httpx
 
@@ -34,9 +41,20 @@ DEFAULT_MODEL = os.environ.get("GEMINI_MODEL", "gemini-2.5-flash")
 GEMINI_URL = (
     "https://generativelanguage.googleapis.com/v1beta/models/{model}:generateContent"
 )
-PORT = int(os.environ.get("NEWS_PORT", "8181"))
+# PORT (Cloud Run / Render convention) wins over NEWS_PORT; fall back to 8181 for local dev.
+PORT = int(os.environ.get("PORT", os.environ.get("NEWS_PORT", "8181")))
+HOST = os.environ.get("NEWS_HOST", "127.0.0.1")
 MAX_ITEMS = int(os.environ.get("NEWS_MAX_ITEMS", "8"))
 REQUEST_TIMEOUT = 180.0
+
+# CORS: comma-separated allow-list of origins (or "*"). Default "*" keeps local dev working;
+# the hosted deployment sets this to the Pages origin (e.g. https://will-smith12.github.io).
+ALLOWED_ORIGINS = [o.strip() for o in os.environ.get("NEWS_ALLOWED_ORIGIN", "*").split(",") if o.strip()]
+# Optional shared access token. When set, /api/news/* requires it (X-News-Token header or ?token=).
+NEWS_TOKEN = os.environ.get("NEWS_TOKEN", "").strip()
+# Simple per-IP fixed-window rate limit (per process instance).
+RATE_LIMIT = int(os.environ.get("NEWS_RATE_LIMIT", "30"))
+RATE_WINDOW = float(os.environ.get("NEWS_RATE_WINDOW", "60"))
 
 # Official US + Canadian government domains the gov agent is restricted to.
 GOV_DOMAINS = [
@@ -508,17 +526,65 @@ def run_agent(category: str):
 
 
 # ── HTTP server ─────────────────────────────────────────────────────────────
+# Per-IP fixed-window rate limiter (per process). Cloud Run may run several instances, so this is
+# a best-effort cap per instance — enough to deter casual abuse of the Gemini quota.
+_rate_hits = defaultdict(deque)
+_rate_lock = threading.Lock()
+
+
+def _rate_limited(client_ip: str) -> bool:
+    """Return True if this client has exceeded RATE_LIMIT requests within RATE_WINDOW seconds."""
+    if RATE_LIMIT <= 0:
+        return False
+    now = time.monotonic()
+    with _rate_lock:
+        hits = _rate_hits[client_ip]
+        while hits and now - hits[0] > RATE_WINDOW:
+            hits.popleft()
+        if len(hits) >= RATE_LIMIT:
+            return True
+        hits.append(now)
+        return False
+
+
 class Handler(BaseHTTPRequestHandler):
+    def _cors_origin(self):
+        """Pick the Access-Control-Allow-Origin value for this request."""
+        if "*" in ALLOWED_ORIGINS:
+            return "*"
+        origin = self.headers.get("Origin", "")
+        if origin and origin in ALLOWED_ORIGINS:
+            return origin
+        return ALLOWED_ORIGINS[0] if ALLOWED_ORIGINS else "*"
+
     def _send(self, status, body):
         payload = json.dumps(body).encode("utf-8")
         self.send_response(status)
         self.send_header("Content-Type", "application/json")
-        self.send_header("Access-Control-Allow-Origin", "*")
+        self.send_header("Access-Control-Allow-Origin", self._cors_origin())
+        self.send_header("Vary", "Origin")
         self.send_header("Access-Control-Allow-Methods", "GET, OPTIONS")
-        self.send_header("Access-Control-Allow-Headers", "Content-Type")
+        self.send_header("Access-Control-Allow-Headers", "Content-Type, X-News-Token")
         self.send_header("Content-Length", str(len(payload)))
         self.end_headers()
         self.wfile.write(payload)
+
+    def _client_ip(self):
+        # Honor the proxy header set by Cloud Run / Render, else the socket peer.
+        fwd = self.headers.get("X-Forwarded-For", "")
+        if fwd:
+            return fwd.split(",")[0].strip()
+        return self.client_address[0] if self.client_address else "?"
+
+    def _token_ok(self):
+        """True if no token is configured, or the request supplied the correct one."""
+        if not NEWS_TOKEN:
+            return True
+        supplied = self.headers.get("X-News-Token", "")
+        if not supplied:
+            qs = parse_qs(urlparse(self.path).query)
+            supplied = (qs.get("token", [""])[0])
+        return supplied == NEWS_TOKEN
 
     def do_OPTIONS(self):  # noqa: N802 - http.server API
         self._send(204, {})
@@ -535,6 +601,12 @@ class Handler(BaseHTTPRequestHandler):
             return
         match = re.fullmatch(r"/api/news/(macro|gov|social)", path)
         if match:
+            if not self._token_ok():
+                self._send(401, {"ok": False, "error": "missing or invalid token"})
+                return
+            if _rate_limited(self._client_ip()):
+                self._send(429, {"ok": False, "error": "rate limit exceeded, try again shortly"})
+                return
             result = run_agent(match.group(1))
             self._send(200, result)
             return
@@ -550,8 +622,11 @@ def main():
             "[news_agents] WARNING: GEMINI_API_KEY is not set — endpoints will return errors "
             "until you export it. Get a free key at https://aistudio.google.com/apikey\n"
         )
-    server = ThreadingHTTPServer(("127.0.0.1", PORT), Handler)
-    sys.stderr.write(f"[news_agents] listening on http://127.0.0.1:{PORT} (model={DEFAULT_MODEL})\n")
+    server = ThreadingHTTPServer((HOST, PORT), Handler)
+    sys.stderr.write(
+        f"[news_agents] listening on http://{HOST}:{PORT} (model={DEFAULT_MODEL}, "
+        f"cors={','.join(ALLOWED_ORIGINS)}, token={'on' if NEWS_TOKEN else 'off'})\n"
+    )
     try:
         server.serve_forever()
     except KeyboardInterrupt:

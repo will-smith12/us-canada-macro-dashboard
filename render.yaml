@@ -1,0 +1,25 @@
+# Render Blueprint for the News Desk backend.
+# Deploy: Render Dashboard -> New -> Blueprint -> pick this repo.
+# Then set the two secret env vars (sync:false) in the dashboard:
+#   GEMINI_API_KEY  -> your Gemini key
+#   NEWS_TOKEN      -> the same token embedded in index.html (see NEWS_API_TOKEN there)
+services:
+  - type: web
+    name: news-desk
+    runtime: python
+    plan: free
+    region: oregon
+    buildCommand: pip install -r requirements.txt
+    startCommand: python news_agents.py
+    healthCheckPath: /api/health
+    envVars:
+      - key: PYTHON_VERSION
+        value: "3.12.6"
+      - key: NEWS_HOST
+        value: "0.0.0.0"
+      - key: NEWS_ALLOWED_ORIGIN
+        value: "https://will-smith12.github.io"
+      - key: GEMINI_API_KEY
+        sync: false
+      - key: NEWS_TOKEN
+        sync: false
