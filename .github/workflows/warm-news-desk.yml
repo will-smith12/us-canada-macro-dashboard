@@ -1,0 +1,40 @@
+name: Warm News Desk
+
+# Keeps the Render free-tier backend awake and its stale-while-revalidate cache fresh by
+# pinging the three news endpoints on a schedule. Without this the service sleeps after
+# ~15 min idle and the first visitor pays a ~30-50s cold-start penalty.
+#
+# Setup: add a repository secret named NEWS_TOKEN whose value matches the NEWS_TOKEN set in
+# the Render dashboard (and embedded in index.html). Settings -> Secrets and variables ->
+# Actions -> New repository secret.
+
+on:
+  schedule:
+    - cron: "*/12 * * * *"   # every 12 minutes (matches the backend cache TTL)
+  workflow_dispatch: {}        # allow manual runs from the Actions tab
+
+# Avoid piling up overlapping runs if one is slow (e.g. a cold start).
+concurrency:
+  group: warm-news-desk
+  cancel-in-progress: true
+
+jobs:
+  warm:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Ping news endpoints
+        env:
+          BASE: https://news-desk.onrender.com
+          NEWS_TOKEN: ${{ secrets.NEWS_TOKEN }}
+        run: |
+          set -u
+          for cat in macro gov social; do
+            echo "== warming /api/news/$cat =="
+            # Generous timeouts so a cold start (first request after sleep) still completes.
+            code=$(curl -s -o /dev/null -w "%{http_code}" \
+                     --connect-timeout 30 --max-time 200 \
+                     -H "X-News-Token: ${NEWS_TOKEN}" \
+                     "${BASE}/api/news/${cat}") || code="000"
+            echo "  HTTP ${code}"
+          done
+          echo "Warm pass complete."

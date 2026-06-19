@@ -86,10 +86,22 @@ GitHub Pages site load news, host the backend somewhere with HTTPS and point the
 | `NEWS_ALLOWED_ORIGIN` | CORS allow-list, comma-separated (or `*`) | `*` |
 | `NEWS_TOKEN` | If set, `/api/news/*` requires `X-News-Token` (or `?token=`) | _(off)_ |
 | `NEWS_RATE_LIMIT` / `NEWS_RATE_WINDOW` | Per-IP rate limit (requests / seconds) | `30` / `60` |
+| `NEWS_CACHE_TTL` | Seconds before a cached feed is refreshed (stale-while-revalidate) | `720` |
 
 > **Token caveat:** the frontend is public, so any token it sends is visible in page source —
 > it deters drive-by bots but is not true secrecy. It is combined with a CORS allow-list and a
 > per-IP rate limit to protect the Gemini quota.
+
+**Caching & cold starts.** The backend keeps the last good feed per category in memory and
+serves it instantly, refreshing in the background once it is older than `NEWS_CACHE_TTL`
+(default 12 min). Responses include `cached_at` and `age_seconds` so the UI can show "Updated
+Xm ago". On Render's free tier the service still sleeps after ~15 min idle, so a scheduled
+GitHub Actions workflow (`.github/workflows/warm-news-desk.yml`) pings the three endpoints
+every 12 minutes to keep it awake and the cache warm.
+
+> **Set up the warm workflow:** add a repository secret `NEWS_TOKEN` (Settings → Secrets and
+> variables → Actions) matching the `NEWS_TOKEN` in Render / `index.html`. The workflow also
+> has a manual "Run workflow" button in the Actions tab.
 
 Example (Google Cloud Run):
 

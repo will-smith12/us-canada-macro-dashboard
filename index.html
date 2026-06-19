@@ -501,8 +501,8 @@
   }
   .news-overlay.show { display: flex; opacity: 1; }
   .news-window {
-    width: min(960px, 92vw);
-    height: min(82vh, 860px);
+    width: min(1200px, 95vw);
+    height: min(88vh, 920px);
     background: var(--panel2);
     border: 1px solid var(--line);
     border-radius: 14px;
@@ -543,7 +543,6 @@
   .news-filter {
     display: flex;
     gap: 4px;
-    margin-left: auto;
     background: rgba(255,255,255,0.04);
     border: 1px solid var(--line);
     border-radius: 8px;
@@ -739,8 +738,125 @@
   }
   .share-btn:hover { color: var(--text); border-color: rgba(255,255,255,0.18); background: rgba(255,255,255,0.04); }
 
+  /* ── Search box + freshness (titlebar) ── */
+  .news-search {
+    flex: 1 1 160px;
+    min-width: 120px;
+    max-width: 460px;
+    background: rgba(255,255,255,0.05);
+    border: 1px solid var(--line);
+    border-radius: 8px;
+    color: var(--text);
+    font: inherit;
+    font-size: 12.5px;
+    padding: 7px 11px;
+    outline: none;
+    transition: 0.12s;
+  }
+  .news-search::placeholder { color: var(--muted); }
+  .news-search:focus { border-color: var(--accent); background: rgba(255,255,255,0.07); }
+  .news-fresh {
+    font-size: 11px;
+    color: var(--muted);
+    white-space: nowrap;
+    flex-shrink: 0;
+  }
+
+  /* ── Topic filter bar ── */
+  .news-topics {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 6px;
+    padding: 9px 18px;
+    border-bottom: 1px solid var(--line);
+    background: rgba(255,255,255,0.015);
+    flex-shrink: 0;
+  }
+  .news-topics:empty { display: none; }
+  .topic-filter {
+    background: rgba(255,255,255,0.04);
+    border: 1px solid var(--line);
+    color: var(--muted);
+    font: inherit;
+    font-size: 11px;
+    font-weight: 600;
+    letter-spacing: 0.3px;
+    padding: 4px 11px;
+    border-radius: 20px;
+    cursor: pointer;
+    transition: 0.12s;
+  }
+  .topic-filter:hover { color: var(--text); border-color: rgba(255,255,255,0.18); }
+  .topic-filter.active {
+    color: #0a0f1e;
+    background: linear-gradient(90deg, var(--accent), var(--accent2));
+    border-color: transparent;
+  }
+  .topic-filter .tf-count { opacity: 0.7; font-weight: 700; margin-left: 4px; }
+
+  /* ── Source favicons (shared) ── */
+  .fav {
+    position: relative;
+    width: 30px; height: 30px;
+    border-radius: 7px;
+    flex-shrink: 0;
+    overflow: hidden;
+  }
+  .fav.round { border-radius: 50%; }
+  .fav-letter {
+    position: absolute; inset: 0;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 12px; font-weight: 700; color: var(--text);
+    background: linear-gradient(135deg, var(--accent), var(--accent2));
+  }
+  .fav img {
+    position: absolute; inset: 0;
+    width: 100%; height: 100%;
+    object-fit: cover;
+    background: var(--panel);
+  }
+
+  /* ── Topic chips on cards ── */
+  .topic-chip {
+    font-size: 9.5px; font-weight: 700; letter-spacing: 0.4px;
+    text-transform: uppercase;
+    padding: 2px 7px; border-radius: 4px;
+    background: rgba(255,255,255,0.06); color: var(--muted);
+    flex-shrink: 0;
+  }
+  .topic-chip.t-inflation { color: #f59e0b; background: rgba(245,158,11,0.14); }
+  .topic-chip.t-rates     { color: #38bdf8; background: rgba(56,189,248,0.14); }
+  .topic-chip.t-jobs      { color: #22c55e; background: rgba(34,197,94,0.14); }
+  .topic-chip.t-growth    { color: #a78bfa; background: rgba(167,139,250,0.16); }
+  .topic-chip.t-housing   { color: #f472b6; background: rgba(244,114,182,0.14); }
+  .topic-chip.t-markets   { color: #2dd4bf; background: rgba(45,212,191,0.14); }
+  .topic-chip.t-trade     { color: #fb923c; background: rgba(251,146,60,0.14); }
+  .topic-chip.t-fed       { color: #818cf8; background: rgba(129,140,248,0.16); }
+  .topic-chip.t-boc       { color: #ef4444; background: rgba(239,68,68,0.14); }
+  .topic-chip.t-consumer  { color: #facc15; background: rgba(250,204,21,0.13); }
+
+  /* ── Click-to-expand ── */
+  .news-card-clickable { cursor: pointer; transition: border-color 0.12s, background 0.12s; }
+  .news-card-clickable:hover { border-color: rgba(255,255,255,0.16); }
+  .clamp {
+    display: -webkit-box;
+    -webkit-line-clamp: 2;
+    -webkit-box-orient: vertical;
+    overflow: hidden;
+  }
+  .expanded .clamp { -webkit-line-clamp: unset; overflow: visible; }
+  .expand-hint {
+    font-size: 10px; color: var(--muted); margin-top: 5px;
+    user-select: none;
+  }
+  .expanded .expand-hint .more { display: none; }
+  .expand-hint .less { display: none; }
+  .expanded .expand-hint .less { display: inline; }
+
   @media (max-width: 640px) {
     .news-window { height: 88vh; width: 94vw; }
+    .news-titlebar { flex-wrap: wrap; }
+    .news-search { order: 5; flex-basis: 100%; max-width: none; }
     .gov-row { grid-template-columns: auto 1fr; }
     .gov-val { grid-column: 2; text-align: left; }
     .gov-agency { min-width: 0; }
@@ -1465,6 +1581,77 @@ function linkOpen(url) {
 function linkClose(url) { return url ? '</a>' : ''; }
 function timeAgo(t) { return '<span class="time-ago">' + esc(t) + '</span>'; }
 
+// ── Topic classification (deterministic keyword rules, runs on cached data) ──
+// First matching topic in priority order wins. Honors a model-supplied `topic` if present.
+const TOPIC_RULES = [
+  ['inflation', 'Inflation', ['inflation', 'cpi', 'ppi', 'pce', 'disinflat', 'deflat', 'price index', 'cost of living']],
+  ['jobs',      'Jobs',      ['job', 'employ', 'unemploy', 'payroll', 'labour', 'labor market', 'jobless', 'hiring', 'wage', 'claims', 'layoff']],
+  ['housing',   'Housing',   ['housing', 'mortgage', 'home price', 'home sales', 'real estate', 'building permit', 'housing start', 'rent']],
+  ['trade',     'Trade',     ['tariff', 'trade', 'export', 'import', 'customs', 'trade deficit', 'trade surplus', 'usmca']],
+  ['rates',     'Rates',     ['rate cut', 'rate hike', 'interest rate', 'yield', 'bond', 'treasury', 'basis point', 'bps', 'policy rate', 'curve']],
+  ['fed',       'Fed',       ['federal reserve', 'fomc', 'powell', ' fed ', 'the fed']],
+  ['boc',       'BoC',       ['bank of canada', 'macklem', ' boc ']],
+  ['growth',    'Growth',    ['gdp', 'growth', 'recession', 'output', 'expansion', 'contraction', 'economic activity']],
+  ['markets',   'Markets',   ['stock', 'equit', 's&p', 'nasdaq', 'dow ', 'tsx', 'market', 'oil', 'crude', 'dollar', 'currency', 'loonie', ' fx', 'gold']],
+  ['consumer',  'Consumer',  ['retail', 'consumer', 'spending', 'sentiment', 'confidence']],
+];
+const TOPIC_LABEL = Object.fromEntries(TOPIC_RULES.map(r => [r[0], r[1]]));
+function itemText(d) {
+  return [d.headline, d.dek, d.text, d.sub, d.source, d.agency, d.handle, d.platform, d.val, d.region]
+    .filter(Boolean).join(' ').toLowerCase();
+}
+function classifyTopic(d) {
+  const modelTopic = String(d.topic || '').trim().toLowerCase();
+  if (modelTopic) {
+    const hit = TOPIC_RULES.find(r => r[0] === modelTopic || r[1].toLowerCase() === modelTopic);
+    if (hit) return hit[0];
+  }
+  const blob = ' ' + itemText(d) + ' ';
+  for (const [slug, , kws] of TOPIC_RULES) {
+    if (kws.some(k => blob.includes(k))) return slug;
+  }
+  return 'other';
+}
+function ensureTopic(d) { if (!d._topic) d._topic = classifyTopic(d); return d._topic; }
+function topicChipHtml(d) {
+  const slug = ensureTopic(d);
+  if (slug === 'other') return '';
+  return '<span class="topic-chip t-' + slug + '">' + esc(TOPIC_LABEL[slug] || slug) + '</span>';
+}
+
+function hostOf(url) {
+  try { return new URL(url).hostname.replace(/^www\./, ''); } catch (e) { return ''; }
+}
+function faviconHtml(url, letter, round) {
+  const h = hostOf(url);
+  const cls = 'fav' + (round ? ' round' : '');
+  const fb = '<span class="fav-letter">' + esc((letter || '?').charAt(0).toUpperCase()) + '</span>';
+  const img = h ? '<img src="https://www.google.com/s2/favicons?domain=' + esc(h) +
+    '&sz=64" alt="" loading="lazy" onerror="this.remove()">' : '';
+  return '<span class="' + cls + '">' + fb + img + '</span>';
+}
+function expandHint(text) {
+  if (!text || String(text).length < 90) return '';   // only offer expand when there's more to show
+  return '<div class="expand-hint"><span class="more">Click to expand &#9662;</span>' +
+    '<span class="less">Click to collapse &#9652;</span></div>';
+}
+
+// Active filter state (region + topic + keyword query)
+let newsRegion = 'all';
+let newsTopic = 'all';
+let newsQuery = '';
+const newsMeta = { macro: null, gov: null, social: null };
+
+function matchesQuery(d) {
+  if (!newsQuery) return true;
+  return (itemText(d) + ' ' + (TOPIC_LABEL[ensureTopic(d)] || '')).toLowerCase().includes(newsQuery);
+}
+function passFilters(d) {
+  if (newsRegion !== 'all' && d.region !== newsRegion) return false;
+  if (newsTopic !== 'all' && ensureTopic(d) !== newsTopic) return false;
+  return matchesQuery(d);
+}
+
 function setFeedStatus(category, html) {
   document.getElementById(category + '-list').innerHTML = html;
 }
@@ -1481,20 +1668,21 @@ function renderMacro(region) {
   const countEl = document.getElementById('macro-count');
   if (!state) { setFeedStatus('macro', loadingHtml('Researching macro headlines…')); countEl.textContent = '…'; return; }
   if (state.error) { setFeedStatus('macro', errorHtml(state.error)); countEl.textContent = '!'; return; }
-  const cls = { CNBC:'cnbc', BNN:'bnn', 'BNN BLOOMBERG':'bnn', MARKETWATCH:'mw', MW:'mw' };
-  const items = (state.items || []).filter(d => region === 'all' || d.region === region);
+  const items = (state.items || []).filter(passFilters);
   countEl.textContent = items.length;
-  if (!items.length) { setFeedStatus('macro', errorHtml('No items.')); return; }
+  if (!items.length) { setFeedStatus('macro', errorHtml(newsQuery || newsTopic !== 'all' ? 'No matches.' : 'No items.')); return; }
   document.getElementById('macro-list').innerHTML = items.map(d => {
-    const badgeCls = cls[String(d.source || '').toUpperCase()] || '';
-    return '<article class="macro-card ' + (d.region === 'ca' ? 'ca' : 'us') + '">' +
+    return '<article class="macro-card news-card-clickable ' + (d.region === 'ca' ? 'ca' : 'us') + '">' +
+      faviconHtml(d.url, d.source || 'N') +
       '<div class="body">' +
         '<div class="headline">' + linkOpen(d.url) + esc(d.headline) + linkClose(d.url) + '</div>' +
-        (d.dek ? '<div class="dek">' + esc(d.dek) + '</div>' : '') +
+        (d.dek ? '<div class="dek clamp">' + esc(d.dek) + '</div>' : '') +
         '<div class="meta">' +
-          '<span class="src-badge ' + badgeCls + '">' + esc(d.source || 'News') + '</span>' +
+          topicChipHtml(d) +
+          '<span class="src-badge">' + esc(d.source || 'News') + '</span>' +
           timeAgo(d.time) +
         '</div>' +
+        expandHint(d.dek) +
       '</div>' +
     '</article>';
   }).join('');
@@ -1508,9 +1696,9 @@ function renderGov(region) {
   const arrow = { up:'\u25B2', down:'\u25BC', flat:'' };
   const dcls  = { up:'delta-up', down:'delta-down', flat:'' };
   const flagFor = (r) => r === 'ca' ? '\u{1F1E8}\u{1F1E6}' : '\u{1F1FA}\u{1F1F8}';
-  const items = (state.items || []).filter(d => region === 'all' || d.region === region);
+  const items = (state.items || []).filter(passFilters);
   countEl.textContent = items.length;
-  if (!items.length) { setFeedStatus('gov', errorHtml('No items.')); return; }
+  if (!items.length) { setFeedStatus('gov', errorHtml(newsQuery || newsTopic !== 'all' ? 'No matches.' : 'No items.')); return; }
   document.getElementById('gov-list').innerHTML = items.map(d => {
     const kind = (d.kind === 'policy') ? 'policy' : 'data';
     const dir = ['up', 'down', 'flat'].includes(d.dir) ? d.dir : 'flat';
@@ -1518,6 +1706,7 @@ function renderGov(region) {
       '<div class="gov-agency"><span class="flag">' + flagFor(d.region) + '</span>' + esc(d.agency || '') + '</div>' +
       '<div class="gov-mid">' +
         '<div class="gov-headline">' + linkOpen(d.url) + esc(d.headline) + linkClose(d.url) +
+          ' ' + topicChipHtml(d) +
           ' <span class="pill ' + kind + '">' + kind + '</span></div>' +
         '<div class="gov-sub">' + esc(d.sub || '') + (d.time ? ' &middot; ' + esc(d.time) : '') + '</div>' +
       '</div>' +
@@ -1532,20 +1721,22 @@ function renderSocial(region) {
   const countEl = document.getElementById('social-count');
   if (!state) { setFeedStatus('social', loadingHtml('Scanning social chatter…')); countEl.textContent = '…'; return; }
   if (state.error) { setFeedStatus('social', errorHtml(state.error)); countEl.textContent = '!'; return; }
-  const items = (state.items || []).filter(d => region === 'all' || d.region === region);
+  const items = (state.items || []).filter(passFilters);
   countEl.textContent = items.length;
-  if (!items.length) { setFeedStatus('social', errorHtml('No items.')); return; }
+  if (!items.length) { setFeedStatus('social', errorHtml(newsQuery || newsTopic !== 'all' ? 'No matches.' : 'No items.')); return; }
   document.getElementById('social-list').innerHTML = items.map(d => {
     const handle = String(d.handle || '?');
     const initial = handle.replace('@', '').charAt(0).toUpperCase() || '?';
-    return '<div class="social-post">' +
-      '<div class="avatar">' + esc(initial) + '</div>' +
+    return '<div class="social-post news-card-clickable">' +
+      faviconHtml(d.url, initial, true) +
       '<div class="social-body">' +
         '<div class="social-meta">' +
           '<span class="handle">' + esc(handle) + '</span>' +
           '<span class="platform">&middot; ' + esc(d.platform || '') + (d.time ? ' &middot; ' + esc(d.time) : '') + '</span>' +
+          topicChipHtml(d) +
         '</div>' +
-        '<div class="social-text">' + esc(d.text || '') + '</div>' +
+        '<div class="social-text clamp">' + esc(d.text || '') + '</div>' +
+        expandHint(d.text) +
       '</div>' +
       '<div class="social-actions">' +
         (d.url ? '<a class="share-btn" href="' + esc(d.url) + '" target="_blank" rel="noopener noreferrer">Open</a>' : '') +
@@ -1554,13 +1745,71 @@ function renderSocial(region) {
   }).join('');
 }
 
-let newsRegion = 'all';
 const RENDERERS = { macro: renderMacro, gov: renderGov, social: renderSocial };
 function renderFeed(category) { RENDERERS[category](newsRegion); }
-function renderNews() { FEEDS.forEach(renderFeed); }
+
+// Build the clickable topic-filter bar from every loaded item (region + query aware,
+// but independent of the active topic so you can always switch topics).
+function allLoadedItems() {
+  const out = [];
+  for (const cat of FEEDS) {
+    const st = newsCache[cat];
+    if (st && st.items) out.push(...st.items);
+  }
+  return out;
+}
+function rebuildTopicBar() {
+  const bar = document.getElementById('news-topics');
+  if (!bar) return;
+  const counts = {};
+  let total = 0;
+  for (const d of allLoadedItems()) {
+    if (newsRegion !== 'all' && d.region !== newsRegion) continue;
+    if (!matchesQuery(d)) continue;
+    const slug = ensureTopic(d);
+    counts[slug] = (counts[slug] || 0) + 1;
+    total++;
+  }
+  if (!total) { bar.innerHTML = ''; return; }
+  // Order chips by the canonical topic order, then 'other' last; drop empties.
+  const order = TOPIC_RULES.map(r => r[0]).concat('other');
+  const chips = ['<button class="topic-filter' + (newsTopic === 'all' ? ' active' : '') +
+    '" data-topic="all">All<span class="tf-count">' + total + '</span></button>'];
+  for (const slug of order) {
+    if (!counts[slug]) continue;
+    const label = slug === 'other' ? 'Other' : (TOPIC_LABEL[slug] || slug);
+    chips.push('<button class="topic-filter' + (newsTopic === slug ? ' active' : '') +
+      '" data-topic="' + slug + '">' + esc(label) +
+      '<span class="tf-count">' + counts[slug] + '</span></button>');
+  }
+  bar.innerHTML = chips.join('');
+}
+
+// "Updated Xm ago" freshness indicator, from the backend's cached_at/age_seconds.
+function updateFreshness() {
+  const el = document.getElementById('news-fresh');
+  if (!el) return;
+  let best = null;  // smallest effective age across loaded feeds, in seconds
+  for (const cat of FEEDS) {
+    const m = newsMeta[cat];
+    if (!m) continue;
+    const eff = m.ageSeconds + Math.floor((Date.now() - m.at) / 1000);
+    if (best === null || eff < best) best = eff;
+  }
+  if (best === null) { el.textContent = ''; return; }
+  let txt;
+  if (best < 60) txt = 'just now';
+  else if (best < 3600) txt = Math.floor(best / 60) + 'm ago';
+  else if (best < 86400) txt = Math.floor(best / 3600) + 'h ago';
+  else txt = Math.floor(best / 86400) + 'd ago';
+  el.textContent = 'Updated ' + txt;
+}
+
+function renderNews() { FEEDS.forEach(renderFeed); rebuildTopicBar(); updateFreshness(); }
 
 async function fetchFeed(category) {
   newsCache[category] = null;       // -> loading state
+  newsMeta[category] = null;
   renderFeed(category);
   const controller = new AbortController();
   const timer = setTimeout(() => controller.abort(), 200000);
@@ -1573,11 +1822,16 @@ async function fetchFeed(category) {
     newsCache[category] = data.ok
       ? { items: data.items || [] }
       : { error: data.error || 'Agent error.' };
+    if (data.ok && typeof data.age_seconds === 'number') {
+      newsMeta[category] = { ageSeconds: data.age_seconds, at: Date.now() };
+    }
   } catch (e) {
     newsCache[category] = { error: 'News agents offline — start the backend: ./start_news_agents.command' };
   } finally {
     clearTimeout(timer);
     renderFeed(category);
+    rebuildTopicBar();
+    updateFreshness();
   }
 }
 
@@ -1589,6 +1843,9 @@ function initNewsDesk() {
   const closeBtn = document.getElementById('news-close');
   const filter = document.getElementById('news-filter');
   const refreshBtn = document.getElementById('news-refresh');
+  const searchInput = document.getElementById('news-search');
+  const topicsBar = document.getElementById('news-topics');
+  const body = document.querySelector('.news-body');
   if (!btn || !overlay) return;
   let hasFetched = false;
 
@@ -1618,6 +1875,36 @@ function initNewsDesk() {
     filter.querySelectorAll('button').forEach(x => x.classList.toggle('active', x === b));
     renderNews();
   });
+
+  // Keyword search across all feeds.
+  if (searchInput) {
+    searchInput.addEventListener('input', () => {
+      newsQuery = searchInput.value.trim().toLowerCase();
+      renderNews();
+    });
+  }
+
+  // Clickable topic chips filter every feed by subject.
+  if (topicsBar) {
+    topicsBar.addEventListener('click', (e) => {
+      const b = e.target.closest('button[data-topic]');
+      if (!b) return;
+      newsTopic = b.dataset.topic;
+      renderNews();
+    });
+  }
+
+  // Click a card to expand/collapse its summary (ignore clicks on links/buttons).
+  if (body) {
+    body.addEventListener('click', (e) => {
+      if (e.target.closest('a, button')) return;
+      const card = e.target.closest('.news-card-clickable');
+      if (card) card.classList.toggle('expanded');
+    });
+  }
+
+  // Keep the "Updated Xm ago" label ticking while the modal is open.
+  setInterval(() => { if (overlay.classList.contains('show')) updateFreshness(); }, 30000);
 }
 
 if (document.readyState === 'loading') {
@@ -1631,6 +1918,8 @@ if (document.readyState === 'loading') {
   <div class="news-window">
     <div class="news-titlebar">
       <div class="news-title"><span class="news-live-dot"></span>News Desk</div>
+      <input id="news-search" class="news-search" type="search" placeholder="Search headlines, sources, topics…" autocomplete="off" aria-label="Search news">
+      <span class="news-fresh" id="news-fresh"></span>
       <div class="news-filter" id="news-filter">
         <button data-region="all" class="active">All</button>
         <button data-region="us">US</button>
@@ -1639,6 +1928,7 @@ if (document.readyState === 'loading') {
       <button class="news-close" id="news-refresh" aria-label="Refresh feeds" title="Re-run agents" style="font-size:15px">&#8635;</button>
       <button class="news-close" id="news-close" aria-label="Close">&times;</button>
     </div>
+    <div class="news-topics" id="news-topics"></div>
     <div class="news-body">
       <section class="feed macro">
         <div class="feed-head">

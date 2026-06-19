@@ -20,6 +20,7 @@ Config via environment:
   NEWS_TOKEN           (optional)  If set, requests must send it via X-News-Token header or ?token=.
   NEWS_RATE_LIMIT      (optional)  Max requests per IP per window. Default: 30.
   NEWS_RATE_WINDOW     (optional)  Rate-limit window in seconds. Default: 60.
+  NEWS_CACHE_TTL       (optional)  Seconds before a cached feed is refreshed (stale-while-revalidate). Default: 720.
 
 No secrets are stored in this file; the key is read from the environment at runtime.
 """
@@ -55,6 +56,9 @@ NEWS_TOKEN = os.environ.get("NEWS_TOKEN", "").strip()
 # Simple per-IP fixed-window rate limit (per process instance).
 RATE_LIMIT = int(os.environ.get("NEWS_RATE_LIMIT", "30"))
 RATE_WINDOW = float(os.environ.get("NEWS_RATE_WINDOW", "60"))
+# Stale-while-revalidate cache: serve cached feeds instantly and refresh in the background once
+# they are older than this many seconds (keeps clicks fast and absorbs Render cold starts).
+CACHE_TTL = float(os.environ.get("NEWS_CACHE_TTL", "720"))
 
 # Official US + Canadian government domains the gov agent is restricted to.
 GOV_DOMAINS = [
@@ -437,7 +441,7 @@ def _dedup_and_balance_social(items, limit, ca_target=3):
     return _sort_chronologically(selected)[:limit]
 
 
-def run_agent(category: str):
+def _fetch_agent(category: str):
     cfg = AGENTS[category]
     api_key = os.environ.get("GEMINI_API_KEY")
     if not api_key:
@@ -523,6 +527,74 @@ def run_agent(category: str):
     items = _sort_chronologically(items)
     items = items[:MAX_ITEMS]
     return {"ok": True, "category": category, "items": items}
+
+
+# ── Stale-while-revalidate cache ─────────────────────────────────────────────
+# Keep the last good feed per category so clicks are instant. When a cached feed is older than
+# CACHE_TTL we still return it immediately and refresh it in a background thread; we only block
+# (call Gemini synchronously) when there is no cached copy yet. This both hides Render cold-start
+# latency and keeps the Gemini quota low (one refresh per category per TTL, not per click).
+_cache = {}                       # category -> {"result": dict, "mono": float, "cached_at": datetime}
+_cache_lock = threading.Lock()
+_refreshing = set()               # categories with an in-flight background refresh
+
+
+def _refresh_into_cache(category: str):
+    """Fetch a fresh feed and store it if successful; always clears the in-flight flag."""
+    try:
+        fresh = _fetch_agent(category)
+        if fresh.get("ok"):
+            with _cache_lock:
+                _cache[category] = {
+                    "result": fresh,
+                    "mono": time.monotonic(),
+                    "cached_at": datetime.now(timezone.utc),
+                }
+    finally:
+        with _cache_lock:
+            _refreshing.discard(category)
+
+
+def _start_refresh(category: str):
+    """Kick off a background refresh for `category` unless one is already running."""
+    with _cache_lock:
+        if category in _refreshing:
+            return
+        _refreshing.add(category)
+    threading.Thread(
+        target=_refresh_into_cache, args=(category,), daemon=True
+    ).start()
+
+
+def _with_freshness(result: dict, cached_at: datetime) -> dict:
+    """Return a shallow copy of a cached result annotated with cache age metadata."""
+    out = dict(result)
+    out["cached_at"] = cached_at.isoformat()
+    out["age_seconds"] = max(0, int((datetime.now(timezone.utc) - cached_at).total_seconds()))
+    return out
+
+
+def run_agent(category: str):
+    """Stale-while-revalidate wrapper around `_fetch_agent`.
+
+    Serves the cached feed instantly (refreshing in the background when stale); only blocks on a
+    live Gemini call when nothing is cached yet. Errors never poison the cache."""
+    with _cache_lock:
+        entry = _cache.get(category)
+
+    if entry is not None:
+        if time.monotonic() - entry["mono"] > CACHE_TTL:
+            _start_refresh(category)  # stale: return now, refresh behind the scenes
+        return _with_freshness(entry["result"], entry["cached_at"])
+
+    # Cold cache: fetch synchronously this once.
+    result = _fetch_agent(category)
+    if result.get("ok"):
+        now = datetime.now(timezone.utc)
+        with _cache_lock:
+            _cache[category] = {"result": result, "mono": time.monotonic(), "cached_at": now}
+        return _with_freshness(result, now)
+    return result  # don't cache errors; caller sees the failure and can retry
 
 
 # ── HTTP server ─────────────────────────────────────────────────────────────
