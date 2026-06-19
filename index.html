@@ -1440,10 +1440,15 @@ if (window.MACRO_DATA) {
   });
 }
 
-// ── News Desk — live LLM agents via local backend ───────────────────────────
-const NEWS_API = (location.hostname === 'localhost' || location.hostname === '127.0.0.1')
+// ── News Desk — live LLM agents backend ─────────────────────────────────────
+// Local dev talks to the localhost backend; the published site uses the hosted
+// service on Render. The token isn't a real secret (it's visible here) — it just
+// deters drive-by abuse and pairs with the backend's CORS lock + rate limit.
+const NEWS_IS_LOCAL = (location.hostname === 'localhost' || location.hostname === '127.0.0.1');
+const NEWS_API = NEWS_IS_LOCAL
   ? 'http://' + location.hostname + ':8181'
-  : 'http://localhost:8181';
+  : 'https://news-desk.onrender.com';
+const NEWS_TOKEN = 'eDRXt1fDpKSnJaYRkYsoVN5BtWBMLhGI';
 
 // In-memory cache for the session: { macro:{items}|{error}, gov:..., social:... }
 const newsCache = { macro: null, gov: null, social: null };
@@ -1560,7 +1565,10 @@ async function fetchFeed(category) {
   const controller = new AbortController();
   const timer = setTimeout(() => controller.abort(), 200000);
   try {
-    const r = await fetch(NEWS_API + '/api/news/' + category, { signal: controller.signal });
+    const r = await fetch(NEWS_API + '/api/news/' + category, {
+      signal: controller.signal,
+      headers: { 'X-News-Token': NEWS_TOKEN },
+    });
     const data = await r.json();
     newsCache[category] = data.ok
       ? { items: data.items || [] }
