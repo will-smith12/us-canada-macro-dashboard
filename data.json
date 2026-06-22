@@ -1,5 +1,5 @@
 {
-  "generated": "2026-06-16",
+  "generated": "2026-06-22",
   "source": "Trading Economics, FRED, Bank of Canada, StatCan (weekly refresh)",
   "indicators": [
     {
@@ -1091,11 +1091,11 @@
           1.7791,
           2.3853,
           2.8152,
-          2.8152
+          3.2258
         ],
         "unit": "percent",
         "source": "Statistics Canada",
-        "latestValue": 2.8152,
+        "latestValue": 3.2258,
         "latestDate": "2026-05"
       },
       "us": {
@@ -3301,7 +3301,8 @@
         "2025-03",
         "2025-06",
         "2025-09",
-        "2025-12"
+        "2025-12",
+        "2026-03"
       ],
       "canada": {
         "values": [
@@ -3405,15 +3406,16 @@
           100.35,
           100.74,
           100.72,
-          99.62,
-          100.28,
-          100.58,
-          100.78
+          99.61,
+          100.25,
+          100.5,
+          100.65,
+          100.33
         ],
         "unit": "percent of GDP",
         "source": "Statistics Canada",
-        "latestValue": 100.78,
-        "latestDate": "2025-12"
+        "latestValue": 100.33,
+        "latestDate": "2026-03"
       },
       "us": {
         "values": [
@@ -3520,7 +3522,8 @@
           68.5,
           68.3,
           68.2,
-          68.1
+          68.1,
+          null
         ],
         "unit": "percent of GDP",
         "source": "Bank for International Settlements",
