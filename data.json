@@ -1,5 +1,5 @@
 {
-  "generated": "2026-06-22",
+  "generated": "2026-06-29",
   "source": "Trading Economics, FRED, Bank of Canada, StatCan (weekly refresh)",
   "indicators": [
     {
@@ -335,11 +335,11 @@
           3.8,
           4.4,
           0.5,
-          1.6
+          2.1
         ],
         "unit": "percent",
         "source": "U.S. Bureau of Economic Analysis",
-        "latestValue": 1.6,
+        "latestValue": 2.1,
         "latestDate": "2026-03"
       }
     },
@@ -3078,11 +3078,11 @@
           4380.5,
           4389.3,
           4405.7,
-          4475
+          4475.1
         ],
         "unit": "USD Billion",
         "source": "U.S. Bureau Of Economic Analysis",
-        "latestValue": 4475,
+        "latestValue": 4475.1,
         "latestDate": "2026-03"
       }
     },
