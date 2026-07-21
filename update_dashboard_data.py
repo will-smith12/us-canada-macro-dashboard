@@ -56,6 +56,13 @@ MAPPING = {
     "GDP (USD B)":                   {"sheet": "GDP",    "kind": "wide", "sub": "GDP", "cadence": "yearly"},
     "Households Debt to GDP (%)":    {"sheet": "Consumer", "kind": "wide", "sub": "Households Debt to GDP", "cadence": "quarterly"},
     "Unemployment Rate (%)":         {"sheet": "Unemployment Rate", "kind": "long", "cadence": "monthly"},
+    # Small-business sentiment: US and CA live in the wide "Business" sheet under
+    # different sub-indicator names (NFIB vs the CFIB "Small Business Sentiment"),
+    # so this uses per-country sub keys instead of a single shared "sub".
+    "Small Business Sentiment":      {"sheet": "Business", "kind": "wide",
+                                      "sub_us": "NFIB Business Optimism Index",
+                                      "sub_ca": "Small Business Sentiment",
+                                      "cadence": "monthly"},
 }
 
 
@@ -96,17 +103,25 @@ def _raw_series(ws, col, data_start):
     return out
 
 
-def _wide_cols(ws, sub):
+def _wide_cols(ws, sub_us, sub_ca):
+    """Locate the US and CA data columns in a wide category sheet.
+
+    ``sub_us``/``sub_ca`` are the sub-indicator header strings for each country;
+    pass the same value for both when a series shares one sub name across
+    countries (the common case).
+    """
     header = list(ws.iter_rows(min_row=1, max_row=4, values_only=True))
     countries, subs = header[2], header[3]
     us = ca = None
     for ci in range(1, len(subs)):
-        if subs[ci] is not None and str(subs[ci]).strip() == sub:
-            country = str(countries[ci]).strip() if ci < len(countries) else ""
-            if country.startswith("United"):
-                us = ci
-            elif country == "Canada":
-                ca = ci
+        if subs[ci] is None:
+            continue
+        name = str(subs[ci]).strip()
+        country = str(countries[ci]).strip() if ci < len(countries) else ""
+        if name == sub_us and country.startswith("United"):
+            us = ci
+        elif name == sub_ca and country == "Canada":
+            ca = ci
     return us, ca
 
 
@@ -186,9 +201,12 @@ def _extract(wb, spec, log):
         us = _resample_native(_raw_series(ws, 1, 4), cadence)
         ca = _resample_native(_raw_series(ws, 2, 4), cadence)
     else:
-        us_col, ca_col = _wide_cols(ws, spec["sub"])
+        sub_us = spec.get("sub_us", spec.get("sub"))
+        sub_ca = spec.get("sub_ca", spec.get("sub"))
+        us_col, ca_col = _wide_cols(ws, sub_us, sub_ca)
         if us_col is None and ca_col is None:
-            log.append(f"  WARN: sub '{spec['sub']}' not found in '{sheet}'; keeping existing data")
+            wanted = sub_us if sub_us == sub_ca else f"{sub_us!r}/{sub_ca!r}"
+            log.append(f"  WARN: sub '{wanted}' not found in '{sheet}'; keeping existing data")
             return None
         us = _resample_wide(_raw_series(ws, us_col, 5), cadence)
         ca = _resample_wide(_raw_series(ws, ca_col, 5), cadence)

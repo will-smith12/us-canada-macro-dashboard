@@ -126,6 +126,7 @@ gcloud run deploy news-desk --source . --region us-central1 --allow-unauthentica
 | GDP (USD B) | line |
 | Households Debt to GDP (%) | line |
 | Unemployment Rate (%) | line |
+| Small Business Sentiment | line (dual axis) |
 
 ## Zooming &amp; date ranges
 
@@ -158,3 +159,7 @@ gcloud run deploy news-desk --source . --region us-central1 --allow-unauthentica
   are excluded automatically by `generate_data.py`.
 - Gross Fixed Capital Formation uses different units per country (CAD Million vs USD Billion),
   so it is plotted on dual y-axes.
+- Small Business Sentiment pairs Canada's **CFIB Business Barometer** (0–100 index, 50 = neutral)
+  with the **US NFIB Small Business Optimism Index** (index, 1986 = 100). The two use different
+  scales, so it is dual-axis: single-country views use each series' own axis and the US-Canada
+  view normalizes both to index 100.
