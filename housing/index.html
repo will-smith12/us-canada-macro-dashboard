@@ -1,0 +1,1061 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Canada Housing Price Indices — Dashboard</title>
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Ctext y='.9em' font-size='90'%3E%F0%9F%8F%A0%3C/text%3E%3C/svg%3E">
+<script src="chart.umd.min.js"></script>
+<script src="hammer.min.js"></script>
+<script src="chartjs-plugin-zoom.min.js"></script>
+<script src="data.js"></script>
+<script src="canada_geo.js"></script>
+<style>
+  :root {
+    --bg:#0a0f1e; --panel:#0d1526; --panel2:#111a30; --line:rgba(255,255,255,0.08);
+    --text:#eef2ff; --muted:#8892b0; --muted2:#64708f; --accent:#ef4444; --accent2:#38bdf8;
+    --chip:rgba(255,255,255,0.06); --radius:14px;
+  }
+  * { box-sizing: border-box; }
+  html, body { margin: 0; height: 100%; }
+  body {
+    font-family: 'Inter', -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+    background:
+      radial-gradient(1200px 600px at 85% -10%, rgba(56,189,248,0.10), transparent 60%),
+      radial-gradient(900px 500px at -5% 0%, rgba(239,68,68,0.10), transparent 55%),
+      var(--bg);
+    color: var(--text); min-height: 100%;
+  }
+  header {
+    display: flex; align-items: center; gap: 18px; padding: 16px 28px;
+    border-bottom: 1px solid var(--line); background: rgba(13,21,38,0.72);
+    backdrop-filter: blur(8px); position: sticky; top: 0; z-index: 20;
+  }
+  .brand { display: flex; align-items: center; gap: 14px; min-width: 0; }
+  .flag {
+    width: 40px; height: 40px; border-radius: 10px; flex: none;
+    background: linear-gradient(135deg, #ef4444, #b91c1c); display: grid;
+    place-items: center; font-size: 20px; box-shadow: 0 6px 18px rgba(239,68,68,0.28);
+  }
+  header h1 { font-size: 17px; margin: 0; font-weight: 700; letter-spacing: 0.2px; }
+  header .sub { font-size: 12px; color: var(--muted); margin-top: 2px; }
+  header .spacer { flex: 1; }
+  .hbtn {
+    border: 1px solid var(--line); background: var(--chip); color: var(--text);
+    padding: 8px 14px; border-radius: 10px; font-size: 13px; font-weight: 600;
+    cursor: pointer; font-family: inherit; transition: background .15s, border-color .15s;
+  }
+  .hbtn:hover { background: rgba(255,255,255,0.12); }
+  .hbtn.hidden { display: none; }
+  .hbtn.cmp { border-color: rgba(56,189,248,0.4); }
+
+  main { padding: 22px 28px 60px; max-width: 1400px; margin: 0 auto; }
+  .view { display: none; }
+  .view.active { display: block; animation: fade .25s ease; }
+  @keyframes fade { from { opacity: 0; transform: translateY(6px);} to {opacity:1; transform:none;} }
+  .lead { color: var(--muted); font-size: 13.5px; margin: 2px 0 20px; line-height: 1.6; max-width: 950px; }
+  .lead b { color: var(--text); font-weight: 600; }
+
+  .grid { display: grid; gap: 16px; grid-template-columns: repeat(auto-fill, minmax(340px, 1fr)); }
+  .card {
+    background: linear-gradient(180deg, var(--panel2), var(--panel));
+    border: 1px solid var(--line); border-radius: var(--radius);
+    padding: 15px 16px 11px; cursor: pointer; position: relative;
+    transition: transform .16s, border-color .16s, box-shadow .16s;
+  }
+  .card:hover { transform: translateY(-3px); border-color: rgba(56,189,248,0.45);
+    box-shadow: 0 14px 30px rgba(0,0,0,0.35); }
+  .card .top { display: flex; justify-content: space-between; align-items: flex-start; gap: 10px; }
+  .card h3 { font-size: 14.5px; margin: 0 0 2px; font-weight: 650; line-height: 1.3; }
+  .badge {
+    font-size: 10.5px; font-weight: 600; color: var(--muted); flex: none;
+    border: 1px solid var(--line); border-radius: 999px; padding: 3px 9px;
+    white-space: nowrap; background: rgba(255,255,255,0.03);
+  }
+  .card .meta { font-size: 11px; color: var(--muted2); margin: 2px 0 6px; }
+  .card .stat { display: flex; align-items: baseline; gap: 9px; margin: 4px 0 6px; }
+  .card .val { font-size: 22px; font-weight: 750; letter-spacing: .3px; }
+  .card .chg { font-size: 12.5px; font-weight: 700; }
+  .chg.up { color: #34d399; } .chg.down { color: #f87171; } .chg.flat { color: var(--muted); }
+  .mini { position: relative; height: 104px; }
+  .card .cta {
+    position: absolute; right: 13px; bottom: 10px; font-size: 11px;
+    color: var(--accent2); opacity: 0; transition: opacity .16s; font-weight: 600;
+  }
+  .card:hover .cta { opacity: 1; }
+
+  .controls {
+    display: flex; flex-wrap: wrap; gap: 12px 18px; align-items: flex-end;
+    background: var(--panel); border: 1px solid var(--line);
+    border-radius: var(--radius); padding: 14px 16px; margin-bottom: 16px;
+  }
+  .field { display: flex; flex-direction: column; gap: 5px; }
+  .field label { font-size: 10.5px; text-transform: uppercase; letter-spacing: .06em; color: var(--muted2); font-weight: 600; }
+  .field.hidden { display: none; }
+  select {
+    background: var(--panel2); color: var(--text); border: 1px solid var(--line);
+    border-radius: 9px; padding: 8px 30px 8px 11px; font-size: 13.5px; font-family: inherit;
+    font-weight: 550; cursor: pointer; appearance: none; min-width: 150px;
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 24 24' fill='none' stroke='%238892b0' stroke-width='2.5'%3E%3Cpath d='M6 9l6 6 6-6'/%3E%3C/svg%3E");
+    background-repeat: no-repeat; background-position: right 10px center;
+  }
+  select#f-family { min-width: 210px; }
+  .grow { flex: 1; }
+  .tbtn {
+    border: 1px solid var(--line); background: var(--chip); color: var(--text);
+    padding: 8px 12px; border-radius: 9px; font-size: 12.5px; font-weight: 600;
+    cursor: pointer; font-family: inherit;
+  }
+  .tbtn:hover { background: rgba(255,255,255,0.12); }
+  .tbtn.active { background: var(--accent); border-color: var(--accent); color: #fff; }
+  .grp { display: inline-flex; gap: 6px; align-items: center; }
+
+  .chart-wrap {
+    background: linear-gradient(180deg, var(--panel2), var(--panel));
+    border: 1px solid var(--line); border-radius: var(--radius); padding: 18px 18px 8px;
+  }
+  .chart-head { display: flex; justify-content: space-between; align-items: baseline; gap: 12px; flex-wrap: wrap; margin-bottom: 6px; }
+  .chart-head h2 { font-size: 18px; margin: 0; font-weight: 700; }
+  .chart-head .unit { font-size: 12px; color: var(--muted); font-weight: 600; }
+  .toolbar { display: flex; gap: 8px; flex-wrap: wrap; align-items: center; }
+  .sep { width: 1px; height: 22px; background: var(--line); margin: 0 4px; }
+  .chart-box { position: relative; height: 470px; margin-top: 6px; }
+
+  .chips { display: flex; flex-wrap: wrap; gap: 8px; margin: 14px 2px 4px; align-items: center; }
+  .chips .clabel { font-size: 10.5px; text-transform: uppercase; letter-spacing:.06em; color: var(--muted2); font-weight:700; margin-right:2px; }
+  .chip {
+    display: inline-flex; align-items: center; gap: 7px; cursor: pointer; user-select: none;
+    border: 1px solid var(--line); background: var(--chip); border-radius: 999px;
+    padding: 5px 12px 5px 10px; font-size: 12.5px; font-weight: 600; transition: opacity .14s, background .14s;
+  }
+  .chip .dot { width: 11px; height: 11px; border-radius: 50%; flex: none; }
+  .chip.off { opacity: .34; }
+  .chip.off .dot { background: var(--muted2) !important; }
+  .chip:hover { background: rgba(255,255,255,0.10); }
+  .chips .mini-link { font-size: 11.5px; color: var(--muted2); cursor: pointer; margin-left: 4px; }
+  .chips .mini-link:hover { color: var(--text); }
+
+  .foot {
+    margin-top: 16px; border-top: 1px solid var(--line); padding-top: 14px;
+    display: grid; gap: 8px; font-size: 12.5px; color: var(--muted); line-height: 1.55;
+  }
+  .foot .src { font-size: 11.5px; color: var(--muted2); }
+  .pill { display:inline-block; font-size:11px; font-weight:600; color: var(--accent2);
+    border:1px solid rgba(56,189,248,0.35); border-radius:999px; padding:2px 9px; margin-right:8px;}
+  footer.page { text-align: center; color: var(--muted2); font-size: 11.5px; padding: 24px 20px 40px; }
+  @media (max-width: 640px) {
+    header { padding: 14px 16px; } main { padding: 16px 14px 48px; }
+    .chart-box { height: 370px; } select#f-family { min-width: 160px; }
+  }
+
+  /* ── map legend / house / tooltip helpers (shared) ─────────────── */
+  .hm-toolbar {
+    display: flex; flex-wrap: wrap; gap: 12px 18px; align-items: flex-end;
+    background: var(--panel); border: 1px solid var(--line);
+    border-radius: var(--radius); padding: 14px 16px; margin-bottom: 16px;
+  }
+  .hm-wrap {
+    background: linear-gradient(180deg, var(--panel2), var(--panel));
+    border: 1px solid var(--line); border-radius: var(--radius); padding: 16px 18px 10px;
+  }
+  .hm-house { display: block; filter: drop-shadow(0 1px 1px rgba(0,0,0,.35)); }
+  .hm-legend { display: flex; align-items: center; gap: 18px; flex-wrap: wrap;
+    margin-top: 16px; font-size: 12px; color: var(--muted); }
+  .hm-leg-item { display: flex; flex-direction: column; gap: 4px; }
+  .hm-scale { height: 12px; width: 190px; border-radius: 6px; border: 1px solid var(--line); }
+  .hm-scale-lab { display: flex; justify-content: space-between; width: 190px;
+    font-size: 10.5px; color: var(--muted2); }
+  .hm-leg-cap { font-size: 11.5px; color: var(--muted2); }
+  .hm-sizes { display: flex; align-items: center; gap: 7px; color: var(--muted2); font-size: 11px; }
+  .hm-tip {
+    position: fixed; pointer-events: none; z-index: 60; background: #0d1526;
+    border: 1px solid rgba(255,255,255,0.14); border-radius: 9px; padding: 8px 11px;
+    font-size: 12px; color: var(--text); box-shadow: 0 12px 34px rgba(0,0,0,.55);
+    opacity: 0; transition: opacity .1s; max-width: 250px;
+  }
+  .hm-tip.on { opacity: 1; }
+  .hm-tip .muted { color: var(--muted); font-size: 11px; margin-top: 2px; }
+  .hbtn.heat { border-color: rgba(52,211,153,0.4); }
+
+  /* ── map view ─────────────────────────────────────────────────── */
+  .mp-stage { position: relative; width: 100%; }
+  #mp-svg { width: 100%; height: auto; display: block; background:
+    radial-gradient(120% 90% at 50% 0%, rgba(56,189,248,0.06), transparent 60%); border-radius: 12px; }
+  #mp-land path { fill: rgba(255,255,255,0.045); stroke: rgba(120,150,200,0.45); stroke-width: 0.8;
+    stroke-linejoin: round; vector-effect: non-scaling-stroke; }
+  .mp-house { cursor: pointer; transition: transform .12s; transform-box: fill-box; transform-origin: 50% 90%; }
+  .mp-house path { stroke: rgba(0,0,0,0.35); stroke-width: 0.6; paint-order: stroke; }
+  .mp-house:hover { transform: scale(1.18); }
+  .mp-dot { fill: rgba(255,255,255,0.55); }
+  .mp-label { fill: rgba(201,217,243,0.62); font-size: 15px; font-weight: 700;
+    text-anchor: middle; dominant-baseline: hanging; pointer-events: none; letter-spacing: .5px;
+    paint-order: stroke; stroke: rgba(6,12,24,0.78); stroke-width: 2.6px; stroke-linejoin: round; }
+  .mp-year-lab { font-size: 15px; font-weight: 750; color: var(--text); min-width: 52px;
+    text-align: center; letter-spacing: .3px; }
+  input[type="range"]#mp-year { -webkit-appearance: none; appearance: none; height: 6px; width: 220px;
+    border-radius: 999px; background: linear-gradient(90deg, var(--accent), var(--accent2));
+    outline: none; cursor: pointer; }
+  input[type="range"]#mp-year::-webkit-slider-thumb { -webkit-appearance: none; appearance: none;
+    width: 16px; height: 16px; border-radius: 50%; background: #eef2ff; border: 2px solid var(--accent2);
+    box-shadow: 0 2px 6px rgba(0,0,0,0.5); }
+  .mp-badge {
+    position: absolute; top: 12px; left: 12px; background: rgba(13,21,38,0.82);
+    border: 1px solid var(--line); border-radius: 12px; padding: 10px 13px; backdrop-filter: blur(6px);
+    font-size: 12px; color: var(--muted); min-width: 118px; box-shadow: 0 8px 22px rgba(0,0,0,0.4);
+  }
+  .mp-badge .bn { font-size: 11px; color: var(--muted2); }
+  .mp-badge .bv { font-size: 21px; font-weight: 800; color: var(--text); margin-top: 2px; letter-spacing: .3px; }
+  .mp-badge .bc { font-size: 12.5px; font-weight: 700; margin-top: 1px; }
+</style>
+</head>
+<body>
+<header>
+  <div class="brand">
+    <div class="flag">🏠</div>
+    <div>
+      <h1>Canada Housing Price Indices</h1>
+      <div class="sub" id="hsub">Teranet–NB · CREA MLS HPI · StatCan assessment</div>
+    </div>
+  </div>
+  <div class="spacer"></div>
+  <button class="hbtn heat" id="map-btn">🗺 Map</button>
+  <button class="hbtn cmp" id="cmp-btn">⚖ Compare national</button>
+  <button class="hbtn hidden" id="back-btn">← Overview</button>
+</header>
+
+<main>
+  <!-- Overview -->
+  <section id="overview" class="view active">
+    <p class="lead" id="overview-lead"></p>
+    <div class="grid" id="cards"></div>
+  </section>
+
+  <!-- Detail / Explore -->
+  <section id="detail" class="view">
+    <div class="controls">
+      <div class="field">
+        <label>Index family</label>
+        <select id="f-family"></select>
+      </div>
+      <div class="field" id="ptype-field">
+        <label>Property type</label>
+        <select id="f-ptype"></select>
+      </div>
+      <div class="field">
+        <label>Measure</label>
+        <select id="f-measure"></select>
+      </div>
+      <div class="grow"></div>
+      <div class="field">
+        <label>Range</label>
+        <div class="grp" id="range-grp">
+          <button class="tbtn" data-y="5">5y</button>
+          <button class="tbtn" data-y="10">10y</button>
+          <button class="tbtn active" data-y="0">All</button>
+        </div>
+      </div>
+      <div class="grp">
+        <button class="tbtn" id="reset-zoom">Reset zoom</button>
+        <span class="sep"></span>
+        <button class="tbtn" id="exp-png">PNG</button>
+        <button class="tbtn" id="exp-csv">CSV</button>
+      </div>
+    </div>
+
+    <div class="chart-wrap">
+      <div class="chart-head">
+        <div>
+          <h2 id="d-title">—</h2>
+          <div class="unit" id="d-unit"></div>
+        </div>
+      </div>
+      <div class="chart-box"><canvas id="chart"></canvas></div>
+      <div class="chips" id="chips"></div>
+      <div class="foot">
+        <div class="src" id="d-source"></div>
+        <div class="src"><span class="pill">Method</span><span id="d-method"></span></div>
+        <div class="src" id="d-caveat" style="display:none"><span class="pill">Note</span><span id="d-caveat-txt"></span></div>
+      </div>
+    </div>
+  </section>
+
+  <!-- Map -->
+  <section id="mapview" class="view">
+    <p class="lead" id="mp-lead"></p>
+    <div class="hm-toolbar">
+      <div class="field">
+        <label>Index family</label>
+        <select id="mp-family"></select>
+      </div>
+      <div class="field hidden" id="mp-ptype-field">
+        <label>Property type</label>
+        <select id="mp-ptype"></select>
+      </div>
+      <div class="field">
+        <label>Metric</label>
+        <select id="mp-measure"></select>
+      </div>
+      <div class="grow"></div>
+      <div class="field">
+        <label>Year</label>
+        <div class="grp">
+          <button class="tbtn" id="mp-play">▶ Play</button>
+          <input type="range" id="mp-year" min="0" max="0" value="0" step="1">
+          <span id="mp-year-lab" class="mp-year-lab">—</span>
+        </div>
+      </div>
+    </div>
+
+    <div class="hm-wrap">
+      <div class="chart-head">
+        <div>
+          <h2 id="mp-title">—</h2>
+          <div class="unit" id="mp-unit"></div>
+        </div>
+      </div>
+      <div class="mp-stage">
+        <svg id="mp-svg" viewBox="0 0 960 600" preserveAspectRatio="xMidYMid meet">
+          <g id="mp-land"></g>
+          <g id="mp-labels"></g>
+          <g id="mp-houses"></g>
+        </svg>
+        <div class="mp-badge" id="mp-badge"></div>
+      </div>
+      <div class="hm-legend" id="mp-legend"></div>
+      <div class="foot">
+        <div class="src" id="mp-source"></div>
+        <div class="src"><span class="pill">Tip</span>Houses sit on their city (Teranet) or province (CREA / StatCan). Drag the year slider or press Play; click a house to open it in Explore.</div>
+      </div>
+    </div>
+  </section>
+
+  <div class="hm-tip" id="hm-tip"></div>
+</main>
+
+<footer class="page" id="page-foot"></footer>
+
+<script>
+(function () {
+  const DB = window.HOUSING_DATA;
+  const FAM = DB.families;
+  const byId = id => document.getElementById(id);
+
+  // distinct color per geography, assigned by position within its family
+  // (each family has <= 14 geographies; the palette has 14 distinct hues).
+  const PALETTE = ["#f87171","#60a5fa","#34d399","#fbbf24","#c084fc","#22d3ee","#f472b6",
+                   "#a3e635","#fb923c","#818cf8","#f43f5e","#facc15","#2dd4bf","#e879f9"];
+  const famColors = {};
+  Object.keys(FAM).forEach(fid => {
+    famColors[fid] = {};
+    FAM[fid].geographies.forEach((g, i) => { famColors[fid][g] = PALETTE[i % PALETTE.length]; });
+  });
+  function colorFor(famId, geo) { return (famColors[famId] && famColors[famId][geo]) || "#8892b0"; }
+
+  // ── formatting ────────────────────────────────────────────────────
+  function fmt(v, kind) {
+    if (v === null || v === undefined || Number.isNaN(v)) return "–";
+    switch (kind) {
+      case "num1": return v.toFixed(1);
+      case "pct2": return (v >= 0 ? "+" : "") + v.toFixed(2) + "%";
+      case "cad0": return "$" + Math.round(v).toLocaleString("en-CA");
+      case "cadM": {
+        if (Math.abs(v) >= 1e6) return "$" + (v / 1e6).toFixed(2) + "T";
+        if (Math.abs(v) >= 1e3) return "$" + (v / 1e3).toFixed(1) + "B";
+        return "$" + Math.round(v).toLocaleString("en-CA") + "M";
+      }
+      default: return String(v);
+    }
+  }
+  function chgClass(v) { return v == null ? "flat" : v > 0.05 ? "up" : v < -0.05 ? "down" : "flat"; }
+
+  // family accessors (crea has an extra property_type level) ──────────
+  function famLabels(fam) {
+    return fam.freq === "annual" ? fam.years.map(String) : fam.dates;
+  }
+  function famPerYear(fam) { return fam.freq === "annual" ? 1 : 12; }
+  function getSeries(famId, geo, measure, ptype) {
+    const fam = FAM[famId], s = fam.series[geo];
+    if (!s) return null;
+    if (famId === "crea") { const p = s[ptype || "Composite"]; return p ? p[measure] : null; }
+    return s[measure];
+  }
+  function lastNonNull(arr) {
+    for (let i = arr.length - 1; i >= 0; i--) if (arr[i] != null) return { v: arr[i], i };
+    return { v: null, i: -1 };
+  }
+
+  // ── state ─────────────────────────────────────────────────────────
+  const state = { view: "overview", famId: "teranet", measure: null, ptype: "Composite",
+                  selected: new Set(), currentYears: 0 };
+  let chart = null;
+
+  // default geographies to show per family
+  const DEFAULTS = {
+    teranet: ["Composite 11", "Toronto", "Vancouver", "Montréal", "Calgary"],
+    crea: ["Canada (National aggregate)", "Ontario", "British Columbia", "Alberta", "Quebec"],
+    statcan: ["Canada", "Ontario", "British Columbia", "Alberta", "Quebec"],
+  };
+
+  // ── overview cards ────────────────────────────────────────────────
+  const CARD_DEFS = [
+    { famId: "teranet", geo: "Composite 11", measure: "index_nsa", chg: "yoy_pct_nsa" },
+    { famId: "crea", geo: "Canada (National aggregate)", ptype: "Composite", measure: "index_sa", chg: "yoy_pct" },
+    { famId: "statcan", geo: "Canada", measure: "value_cad_millions", chg: "yoy_pct" },
+  ];
+  const miniCharts = [];
+
+  function buildOverview() {
+    byId("overview-lead").innerHTML =
+      "Canada's three main house-price index families, each a different method. " +
+      "<b>Teranet–National Bank</b> (repeat-sales), <b>CREA MLS HPI</b> (hedonic/benchmark price) and " +
+      "<b>StatCan / provincial assessment</b> values (appraisal). Click a card to explore geographies and measures, " +
+      "open the <b>🗺 Map</b> tab to see the houses laid over Canada through time, " +
+      "or <b>Compare national</b> to see all three together. Generated " + DB.generated + ".";
+
+    const wrap = byId("cards");
+    wrap.innerHTML = "";
+    miniCharts.forEach(c => c.destroy()); miniCharts.length = 0;
+
+    CARD_DEFS.forEach((cd, k) => {
+      const fam = FAM[cd.famId];
+      const mDef = fam.measures.find(m => m.key === cd.measure);
+      const vals = getSeries(cd.famId, cd.geo, cd.measure, cd.ptype);
+      const chgArr = getSeries(cd.famId, cd.geo, cd.chg, cd.ptype);
+      const last = lastNonNull(vals);
+      const lastChg = lastNonNull(chgArr);
+      const labels = famLabels(fam);
+      const asOf = last.i >= 0 ? labels[last.i] : "—";
+
+      const card = document.createElement("div");
+      card.className = "card";
+      card.innerHTML =
+        '<div class="top"><h3>' + fam.name + '</h3>' +
+        '<span class="badge">' + fam.method.split(" (")[0] + '</span></div>' +
+        '<div class="meta">' + cd.geo.replace(" (National aggregate)", "") +
+          " · " + fam.freq + " · as of " + asOf + '</div>' +
+        '<div class="stat"><span class="val">' + fmt(last.v, mDef.fmt) + '</span>' +
+        '<span class="chg ' + chgClass(lastChg.v) + '">' + fmt(lastChg.v, "pct2") + ' y/y</span></div>' +
+        '<div class="mini"><canvas></canvas></div>' +
+        '<div class="cta">Explore →</div>';
+      card.addEventListener("click", () => openDetail(cd.famId));
+      wrap.appendChild(card);
+
+      // mini sparkline (national headline level)
+      const ctx = card.querySelector("canvas");
+      const col = cd.famId === "statcan" ? "#c084fc" : (cd.famId === "crea" ? "#60a5fa" : "#f87171");
+      miniCharts.push(new Chart(ctx, {
+        type: "line",
+        data: { labels, datasets: [{ data: vals, borderColor: col,
+          backgroundColor: col + "22", borderWidth: 2, pointRadius: 0, tension: 0.25,
+          fill: true, spanGaps: true }] },
+        options: { responsive: true, maintainAspectRatio: false, animation: false,
+          plugins: { legend: { display: false }, tooltip: { enabled: false } },
+          scales: { x: { display: false }, y: { display: false } },
+          elements: { line: { borderJoinStyle: "round" } } },
+      }));
+    });
+
+    // compare card
+    const cc = document.createElement("div");
+    cc.className = "card";
+    const cmp = DB.compare;
+    cc.innerHTML =
+      '<div class="top"><h3>National comparison</h3><span class="badge">YoY %</span></div>' +
+      '<div class="meta">Teranet C11 · CREA national · StatCan Canada</div>' +
+      '<div class="stat"><span class="val" style="font-size:15px;color:var(--muted)">All three, one axis</span></div>' +
+      '<div class="mini"><canvas></canvas></div><div class="cta">Compare →</div>';
+    cc.addEventListener("click", showCompare);
+    wrap.appendChild(cc);
+    const cctx = cc.querySelector("canvas");
+    miniCharts.push(new Chart(cctx, {
+      type: "line",
+      data: { labels: cmp.dates, datasets: [
+        { data: cmp.series.teranet_c11_yoy, borderColor: "#f87171", borderWidth: 1.5, pointRadius: 0, tension: .25, spanGaps: true },
+        { data: cmp.series.crea_national_yoy, borderColor: "#60a5fa", borderWidth: 1.5, pointRadius: 0, tension: .25, spanGaps: true },
+        { data: cmp.series.statcan_canada_yoy, borderColor: "#c084fc", borderWidth: 1.5, pointRadius: 0, tension: .25, spanGaps: true },
+      ] },
+      options: { responsive: true, maintainAspectRatio: false, animation: false,
+        plugins: { legend: { display: false }, tooltip: { enabled: false } },
+        scales: { x: { display: false }, y: { display: false } } },
+    }));
+  }
+
+  // ── detail / explore ──────────────────────────────────────────────
+  const familySel = byId("f-family"), ptypeSel = byId("f-ptype"), measureSel = byId("f-measure");
+  Object.keys(FAM).forEach(fid => {
+    const o = document.createElement("option"); o.value = fid; o.textContent = FAM[fid].name;
+    familySel.appendChild(o);
+  });
+
+  function populateMeasureSel() {
+    const fam = FAM[state.famId];
+    measureSel.innerHTML = "";
+    fam.measures.forEach(m => {
+      const o = document.createElement("option"); o.value = m.key; o.textContent = m.label;
+      measureSel.appendChild(o);
+    });
+    if (!fam.measures.find(m => m.key === state.measure)) state.measure = fam.measures[0].key;
+    measureSel.value = state.measure;
+  }
+  function populatePtypeSel() {
+    const fam = FAM[state.famId];
+    const has = state.famId === "crea";
+    byId("ptype-field").classList.toggle("hidden", !has);
+    if (!has) return;
+    ptypeSel.innerHTML = "";
+    fam.property_types.forEach(p => {
+      const o = document.createElement("option"); o.value = p; o.textContent = p;
+      ptypeSel.appendChild(o);
+    });
+    if (!fam.property_types.includes(state.ptype)) state.ptype = "Composite";
+    ptypeSel.value = state.ptype;
+  }
+
+  function openDetail(famId) {
+    state.famId = famId;
+    state.selected = new Set(DEFAULTS[famId].filter(g => FAM[famId].geographies.includes(g)));
+    if (!state.selected.size) state.selected = new Set([FAM[famId].geographies[0]]);
+    familySel.value = famId;
+    populatePtypeSel();
+    populateMeasureSel();
+    state.view = "detail";
+    showView("detail");
+    renderDetail();
+  }
+
+  familySel.addEventListener("change", () => openDetail(familySel.value));
+  ptypeSel.addEventListener("change", () => { state.ptype = ptypeSel.value; renderDetail(); });
+  measureSel.addEventListener("change", () => { state.measure = measureSel.value; renderDetail(); });
+
+  function buildChips() {
+    const fam = FAM[state.famId];
+    const box = byId("chips");
+    box.innerHTML = '<span class="clabel">Geography</span>';
+    fam.geographies.forEach(geo => {
+      const on = state.selected.has(geo);
+      const chip = document.createElement("span");
+      chip.className = "chip" + (on ? "" : " off");
+      chip.innerHTML = '<span class="dot" style="background:' + colorFor(state.famId, geo) + '"></span>' +
+        geo.replace(" (National aggregate)", " (national)");
+      chip.addEventListener("click", () => {
+        if (state.selected.has(geo)) { if (state.selected.size > 1) state.selected.delete(geo); }
+        else state.selected.add(geo);
+        renderDetail();
+      });
+      box.appendChild(chip);
+    });
+    const all = document.createElement("span"); all.className = "mini-link"; all.textContent = "All";
+    all.onclick = () => { fam.geographies.forEach(g => state.selected.add(g)); renderDetail(); };
+    const none = document.createElement("span"); none.className = "mini-link"; none.textContent = "Only national";
+    none.onclick = () => { state.selected = new Set([fam.national]); renderDetail(); };
+    box.appendChild(all); box.appendChild(none);
+  }
+
+  function renderDetail() {
+    const fam = FAM[state.famId];
+    const mDef = fam.measures.find(m => m.key === state.measure);
+    const labels = famLabels(fam);
+    const isPct = mDef.fmt === "pct2";
+
+    byId("d-title").textContent = fam.name + (state.famId === "crea" ? " — " + state.ptype : "");
+    byId("d-unit").textContent = "Measure: " + mDef.label + "  ·  units: " + mDef.unit +
+      "  ·  " + fam.freq + "  ·  base " + fam.base;
+    byId("d-source").textContent = "Source: " + fam.source;
+    byId("d-method").textContent = fam.method;
+    const cav = byId("d-caveat");
+    if (fam.caveat) { cav.style.display = ""; byId("d-caveat-txt").textContent = fam.caveat; }
+    else cav.style.display = "none";
+
+    const datasets = [...state.selected].map(geo => ({
+      label: geo.replace(" (National aggregate)", " (national)"),
+      data: getSeries(state.famId, geo, state.measure, state.ptype),
+      borderColor: colorFor(state.famId, geo), backgroundColor: colorFor(state.famId, geo) + "20",
+      borderWidth: 2, pointRadius: fam.freq === "annual" ? 2 : 0, pointHoverRadius: 4,
+      tension: 0.22, spanGaps: fam.freq === "annual",
+    }));
+
+    const scales = {
+      x: { grid: { color: "rgba(255,255,255,0.04)" },
+           ticks: { maxTicksLimit: 14, autoSkip: true, color: "#64708f" } },
+      y: { grid: { color: c => c.tick && c.tick.value === 0 ? "rgba(255,255,255,0.30)" : "rgba(255,255,255,0.06)" },
+           ticks: { color: "#8892b0", callback: v => isPct ? v + "%" : (mDef.fmt === "cadM" || mDef.fmt === "cad0" ? fmt(v, mDef.fmt) : v) } },
+    };
+
+    if (chart) chart.destroy();
+    chart = new Chart(byId("chart"), {
+      type: "line",
+      data: { labels, datasets },
+      options: {
+        responsive: true, maintainAspectRatio: false,
+        interaction: { mode: "index", intersect: false },
+        plugins: {
+          legend: { display: false },
+          tooltip: {
+            backgroundColor: "#0d1526", borderColor: "rgba(255,255,255,0.12)", borderWidth: 1,
+            padding: 10, titleColor: "#eef2ff", bodyColor: "#c8d2f0",
+            callbacks: { label: c => "  " + c.dataset.label + ": " + fmt(c.parsed.y, mDef.fmt) },
+            itemSort: (a, b) => b.parsed.y - a.parsed.y,
+          },
+          zoom: {
+            limits: { x: { min: "original", max: "original" } },
+            pan: { enabled: true, mode: "x", modifierKey: "shift" },
+            zoom: { mode: "x", wheel: { enabled: true, speed: 0.08 },
+              drag: { enabled: true, backgroundColor: "rgba(56,189,248,0.15)",
+                      borderColor: "rgba(56,189,248,0.6)", borderWidth: 1 },
+              onZoomComplete: clearRangeActive },
+          },
+        },
+        scales,
+      },
+    });
+    buildChips();
+    applyRange(state.currentYears);
+  }
+
+  // ── compare (national, all three) ─────────────────────────────────
+  let cmpMode = "yoy";  // 'yoy' | 'levels'
+  function showCompare() {
+    state.view = "compare";
+    showView("detail");
+    byId("ptype-field").classList.add("hidden");
+    // repurpose the family/measure selectors row: hide family+measure, show compare toggle in chips
+    renderCompare();
+  }
+
+  function renderCompare() {
+    const cmp = DB.compare, labels = cmp.dates;
+    byId("d-title").textContent = "National comparison — Teranet · CREA · StatCan";
+    byId("d-method").textContent = "Repeat-sales vs hedonic/benchmark vs appraisal — different methods; growth rates are the comparable view.";
+    byId("d-source").textContent = "Source: " + DB.source_note;
+    byId("d-caveat").style.display = "none";
+
+    let datasets, scales;
+    if (cmpMode === "yoy") {
+      byId("d-unit").textContent = "Year-over-year % change  ·  monthly (StatCan annual, stepped)";
+      datasets = [
+        { label: "Teranet C11 (YoY)", data: cmp.series.teranet_c11_yoy, borderColor: "#f87171" },
+        { label: "CREA national (YoY)", data: cmp.series.crea_national_yoy, borderColor: "#60a5fa" },
+        { label: "StatCan Canada (YoY)", data: cmp.series.statcan_canada_yoy, borderColor: "#c084fc" },
+      ].map(d => ({ ...d, backgroundColor: d.borderColor + "20", borderWidth: 2,
+        pointRadius: 0, pointHoverRadius: 4, tension: 0.22, spanGaps: true, yAxisID: "y" }));
+      scales = {
+        x: { grid: { color: "rgba(255,255,255,0.04)" }, ticks: { maxTicksLimit: 14, autoSkip: true, color: "#64708f" } },
+        y: { grid: { color: c => c.tick && c.tick.value === 0 ? "rgba(255,255,255,0.30)" : "rgba(255,255,255,0.06)" },
+             ticks: { color: "#8892b0", callback: v => v + "%" } },
+      };
+    } else {
+      byId("d-unit").textContent = "Index levels (Teranet & CREA, left) vs StatCan assessment C$M (right, dual axis)";
+      datasets = [
+        { label: "Teranet C11 index", data: cmp.series.teranet_c11_index, borderColor: "#f87171", yAxisID: "y" },
+        { label: "CREA national index", data: cmp.series.crea_national_index, borderColor: "#60a5fa", yAxisID: "y" },
+        { label: "StatCan Canada (C$M)", data: cmp.series.statcan_canada_value_Mcad, borderColor: "#c084fc", yAxisID: "y1" },
+      ].map(d => ({ ...d, backgroundColor: d.borderColor + "20", borderWidth: 2,
+        pointRadius: 0, pointHoverRadius: 4, tension: 0.22, spanGaps: true }));
+      scales = {
+        x: { grid: { color: "rgba(255,255,255,0.04)" }, ticks: { maxTicksLimit: 14, autoSkip: true, color: "#64708f" } },
+        y: { position: "left", grid: { color: "rgba(255,255,255,0.06)" }, ticks: { color: "#8892b0" },
+             title: { display: true, text: "Index (2005=100)", color: "#8892b0" } },
+        y1: { position: "right", grid: { drawOnChartArea: false }, ticks: { color: "#c084fc", callback: v => fmt(v, "cadM") },
+              title: { display: true, text: "StatCan C$", color: "#c084fc" } },
+      };
+    }
+
+    if (chart) chart.destroy();
+    chart = new Chart(byId("chart"), {
+      type: "line",
+      data: { labels, datasets },
+      options: {
+        responsive: true, maintainAspectRatio: false,
+        interaction: { mode: "index", intersect: false },
+        plugins: {
+          legend: { display: false },
+          tooltip: { backgroundColor: "#0d1526", borderColor: "rgba(255,255,255,0.12)", borderWidth: 1,
+            padding: 10, titleColor: "#eef2ff", bodyColor: "#c8d2f0",
+            callbacks: { label: c => "  " + c.dataset.label + ": " +
+              (cmpMode === "yoy" ? fmt(c.parsed.y, "pct2")
+               : c.dataset.yAxisID === "y1" ? fmt(c.parsed.y, "cadM") : fmt(c.parsed.y, "num1")) } },
+          zoom: { limits: { x: { min: "original", max: "original" } },
+            pan: { enabled: true, mode: "x", modifierKey: "shift" },
+            zoom: { mode: "x", wheel: { enabled: true, speed: 0.08 },
+              drag: { enabled: true, backgroundColor: "rgba(56,189,248,0.15)",
+                      borderColor: "rgba(56,189,248,0.6)", borderWidth: 1 },
+              onZoomComplete: clearRangeActive } },
+        },
+        scales,
+      },
+    });
+
+    // compare chips = the three series legend + mode toggle
+    const box = byId("chips");
+    box.innerHTML = '<span class="clabel">View</span>';
+    [["yoy", "YoY % change"], ["levels", "Levels (dual axis)"]].forEach(([mode, lab]) => {
+      const b = document.createElement("span");
+      b.className = "chip" + (cmpMode === mode ? "" : " off");
+      b.innerHTML = '<span class="dot" style="background:' + (cmpMode === mode ? "#38bdf8" : "#64708f") + '"></span>' + lab;
+      b.onclick = () => { if (cmpMode !== mode) { cmpMode = mode; renderCompare(); applyRange(state.currentYears); } };
+      box.appendChild(b);
+    });
+    applyRange(state.currentYears);
+  }
+
+  // ── range / zoom / export ─────────────────────────────────────────
+  const rangeGrp = byId("range-grp");
+  function clearRangeActive() { rangeGrp.querySelectorAll("button").forEach(b => b.classList.remove("active")); }
+  function applyRange(years) {
+    if (!chart) return;
+    if (chart.resetZoom) chart.resetZoom("none");
+    const perYear = state.view === "compare" ? 12 : famPerYear(FAM[state.famId]);
+    if (!years) { chart.options.scales.x.min = undefined; chart.options.scales.x.max = undefined; }
+    else {
+      const end = chart.data.labels.length - 1;
+      chart.options.scales.x.min = Math.max(0, end - years * perYear);
+      chart.options.scales.x.max = end;
+    }
+    chart.update();
+  }
+  rangeGrp.querySelectorAll("button").forEach(b => b.addEventListener("click", () => {
+    clearRangeActive(); b.classList.add("active");
+    state.currentYears = +b.dataset.y; applyRange(state.currentYears);
+  }));
+  byId("reset-zoom").addEventListener("click", () => {
+    clearRangeActive(); rangeGrp.querySelector('[data-y="0"]').classList.add("active");
+    state.currentYears = 0; applyRange(0);
+  });
+
+  byId("exp-png").addEventListener("click", () => {
+    const a = document.createElement("a");
+    a.href = chart.toBase64Image("image/png", 1.0);
+    a.download = (state.view === "compare" ? "housing_compare_" + cmpMode
+      : "housing_" + state.famId + "_" + state.measure) + ".png";
+    a.click();
+  });
+  byId("exp-csv").addEventListener("click", () => {
+    let rows;
+    if (state.view === "compare") {
+      const cmp = DB.compare, keys = Object.keys(cmp.series);
+      rows = [["Month"].concat(keys).join(",")];
+      cmp.dates.forEach((d, r) => rows.push([d].concat(keys.map(k => cmp.series[k][r] ?? "")).join(",")));
+    } else {
+      const fam = FAM[state.famId], labels = famLabels(fam), geos = [...state.selected];
+      rows = [[fam.freq === "annual" ? "Year" : "Month"].concat(geos).join(",")];
+      labels.forEach((lab, r) => rows.push([lab].concat(
+        geos.map(g => { const s = getSeries(state.famId, g, state.measure, state.ptype); return s && s[r] != null ? s[r] : ""; })).join(",")));
+    }
+    const blob = new Blob([rows.join("\n")], { type: "text/csv" });
+    const a = document.createElement("a"); a.href = URL.createObjectURL(blob);
+    a.download = (state.view === "compare" ? "housing_compare_" + cmpMode
+      : "housing_" + state.famId + "_" + state.measure) + ".csv";
+    a.click(); URL.revokeObjectURL(a.href);
+  });
+
+  // ── view switching ────────────────────────────────────────────────
+  const overviewSection = byId("overview"), detailSection = byId("detail"), mapSection = byId("mapview");
+  const backBtn = byId("back-btn"), cmpBtn = byId("cmp-btn");
+  function showView(name) {
+    overviewSection.classList.toggle("active", name === "overview");
+    detailSection.classList.toggle("active", name === "detail");
+    mapSection.classList.toggle("active", name === "map");
+    backBtn.classList.toggle("hidden", name === "overview");
+    // restore standard detail controls when not comparing
+    const showFamControls = state.view === "detail";
+    byId("f-family").parentElement.style.display = showFamControls ? "" : "none";
+    measureSel.parentElement.style.display = showFamControls ? "" : "none";
+    if (name === "overview") state.view = "overview";
+    window.scrollTo({ top: 0, behavior: "smooth" });
+  }
+  backBtn.addEventListener("click", () => { state.view = "overview"; showView("overview"); });
+  cmpBtn.addEventListener("click", showCompare);
+
+  byId("page-foot").textContent =
+    "Standalone offline dashboard · data from ~/Downloads/canada_housing_indices.xlsx · rebuild with build_dashboard_data.py · " + DB.generated;
+
+  // ── shared scale / snapshot / legend helpers (used by the Map) ─────
+  const HM_NEG = "#ef4444", HM_POS = "#22c55e", HM_MID = "#26374d",
+        HM_GREY = "#5b6b86", HM_SLOW = "#0d2742", HM_SHIGH = "#f59e0b";
+  const hmTip = byId("hm-tip");
+
+  function hexToRgb(h) { h = h.replace("#", ""); return [parseInt(h.slice(0,2),16), parseInt(h.slice(2,4),16), parseInt(h.slice(4,6),16)]; }
+  function mix(a, b, t) {
+    t = Math.max(0, Math.min(1, t)); const A = hexToRgb(a), B = hexToRgb(b);
+    return `rgb(${Math.round(A[0]+(B[0]-A[0])*t)},${Math.round(A[1]+(B[1]-A[1])*t)},${Math.round(A[2]+(B[2]-A[2])*t)})`;
+  }
+  function niceCeil(x) { for (const n of [3,5,8,10,15,20,25,30,40,50]) if (x <= n) return n; return Math.ceil(x/25)*25; }
+  function computeScale(vals, isPct) {
+    if (isPct) {
+      const abs = vals.map(Math.abs).sort((a, b) => a - b);
+      const p95 = abs.length ? abs[Math.floor(0.95 * (abs.length - 1))] : 5;
+      return { type: "div", clamp: niceCeil(Math.max(3, p95)) };
+    }
+    let mn = Math.min(...vals), mx = Math.max(...vals);
+    if (!isFinite(mn)) mn = 0; if (!isFinite(mx)) mx = 1; if (mn === mx) mx = mn + 1;
+    return { type: "seq", min: mn, max: mx };
+  }
+  // color + size for a value under a scale
+  function scaleColor(v, sc) {
+    const t = sc.type === "div" ? Math.min(1, Math.abs(v) / sc.clamp) : (v - sc.min) / (sc.max - sc.min);
+    const col = sc.type === "div" ? mix(HM_GREY, v < 0 ? HM_NEG : HM_POS, Math.max(0.18, t)) : mix(HM_SLOW, HM_SHIGH, Math.max(0.2, t));
+    const bg = sc.type === "div" ? mix(HM_MID, v < 0 ? HM_NEG : HM_POS, t) : mix(HM_SLOW, HM_SHIGH, t);
+    return { t, col, bg };
+  }
+  function houseSVG(size, color) {
+    return `<svg class="hm-house" width="${size}" height="${size}" viewBox="0 0 24 24">` +
+      `<path d="M12 2.6 22.2 11H19.8V21.4H5.2V11H2.8Z" fill="${color}"/>` +
+      `<rect x="10" y="14.6" width="4" height="6.8" rx="0.4" fill="rgba(0,0,0,0.32)"/></svg>`;
+  }
+
+  function hmMeasureDefault(fam) { const y = fam.measures.find(m => /yoy/i.test(m.key)); return (y || fam.measures[0]).key; }
+
+  // collapse each series to a year-end snapshot: geography × year matrix
+  function snapshotMatrix(famId, measure, ptype) {
+    const fam = FAM[famId], isAnnual = fam.freq === "annual", labels = famLabels(fam);
+    const order = [], idxByYear = {};
+    labels.forEach((lab, i) => {
+      const y = isAnnual ? String(lab) : String(lab).slice(0, 4);
+      if (!(y in idxByYear)) { idxByYear[y] = []; order.push(y); }
+      idxByYear[y].push(i);
+    });
+    const years = order.slice().sort();
+    const rows = fam.geographies.map(geo => {
+      const s = getSeries(famId, geo, measure, ptype);
+      const values = years.map(y => {
+        const ix = idxByYear[y];
+        for (let k = ix.length - 1; k >= 0; k--) { const v = s ? s[ix[k]] : null; if (v != null) return v; }
+        return null;
+      });
+      return { geo, values };
+    });
+    return { years, rows };
+  }
+
+  function legendHTML(sc, mDef, houses) {
+    let grad, left, mid, right, cap;
+    if (sc.type === "div") {
+      grad = `linear-gradient(90deg, ${HM_NEG}, ${HM_MID}, ${HM_POS})`;
+      left = "−" + sc.clamp + "%"; mid = "0%"; right = "+" + sc.clamp + "%";
+      cap = "prices falling ← → rising";
+    } else {
+      grad = `linear-gradient(90deg, ${HM_SLOW}, ${HM_SHIGH})`;
+      left = fmt(sc.min, mDef.fmt); mid = ""; right = fmt(sc.max, mDef.fmt);
+      cap = "lower ← → higher";
+    }
+    return `<div class="hm-leg-item"><div class="hm-scale" style="background:${grad}"></div>` +
+      `<div class="hm-scale-lab"><span>${left}</span><span>${mid}</span><span>${right}</span></div></div>` +
+      `<div class="hm-leg-cap">${cap}</div>` +
+      (houses ? `<div class="hm-sizes">${houseSVG(12, "#8892b0")}<span>smaller</span>${houseSVG(26, "#cbd5e1")}<span>larger magnitude</span></div>` : "");
+  }
+
+  // ── map view ──────────────────────────────────────────────────────
+  const GEO = window.CANADA_GEO;
+  // city points (Teranet CMAs) and province marker points (CREA / StatCan)
+  const CITY = {
+    "Calgary": [-114.07, 51.05], "Edmonton": [-113.49, 53.55], "Halifax": [-63.58, 44.65],
+    "Hamilton": [-79.87, 43.26], "Montréal": [-73.57, 45.50], "Ottawa-Gatineau": [-75.70, 45.42],
+    "Québec City": [-71.21, 46.81], "Toronto": [-79.38, 43.65], "Vancouver": [-123.12, 49.28],
+    "Victoria": [-123.37, 48.43], "Winnipeg": [-97.14, 49.90],
+  };
+  const PROV = {
+    "British Columbia": [-123.8, 53.7], "Alberta": [-114.6, 54.2], "Saskatchewan": [-105.8, 53.9],
+    "Manitoba": [-98.0, 53.9], "Ontario": [-85.6, 49.9], "Quebec": [-72.6, 51.6],
+    "Newfoundland and Labrador": [-56.3, 48.6], "New Brunswick": [-66.2, 46.6],
+    "Nova Scotia": [-63.0, 45.1], "Prince Edward Island": [-63.2, 46.6],
+    "Yukon": [-135.0, 63.4], "Northwest Territories": [-118.5, 64.2], "Nunavut": [-92.0, 66.8],
+  };
+  function geoPoint(geo) { return CITY[geo] || PROV[geo] || null; }
+  const ABBR = {
+    "British Columbia": "BC", "Alberta": "AB", "Saskatchewan": "SK", "Manitoba": "MB",
+    "Ontario": "ON", "Quebec": "QC", "Newfoundland and Labrador": "NL", "New Brunswick": "NB",
+    "Nova Scotia": "NS", "Prince Edward Island": "PE", "Yukon": "YT",
+    "Northwest Territories": "NT", "Nunavut": "NU",
+  };
+
+  // Lambert conformal conic (StatCan parameters) so the map looks right
+  const D2R = Math.PI / 180;
+  const P1 = 49 * D2R, P2 = 77 * D2R, P0 = 63.390675 * D2R, L0 = -91.866 * D2R;
+  const LN = Math.log(Math.cos(P1) / Math.cos(P2)) /
+             Math.log(Math.tan(Math.PI/4 + P2/2) / Math.tan(Math.PI/4 + P1/2));
+  const LF = Math.cos(P1) * Math.pow(Math.tan(Math.PI/4 + P1/2), LN) / LN;
+  const LR0 = LF / Math.pow(Math.tan(Math.PI/4 + P0/2), LN);
+  function lcc(lon, lat) {
+    const r = LF / Math.pow(Math.tan(Math.PI/4 + lat * D2R / 2), LN);
+    return [r * Math.sin(LN * (lon * D2R - L0)), LR0 - r * Math.cos(LN * (lon * D2R - L0))];
+  }
+  const VW = 960, VH = 600, PAD = 16;
+  let FIT = null;
+  function fitProjection() {
+    let mnx = Infinity, mxx = -Infinity, mny = Infinity, mxy = -Infinity;
+    (GEO ? GEO.features : []).forEach(f => f.g.forEach(poly => poly.forEach(ring => ring.forEach(p => {
+      const [x, y] = lcc(p[0], p[1]);
+      if (x < mnx) mnx = x; if (x > mxx) mxx = x; if (y < mny) mny = y; if (y > mxy) mxy = y;
+    }))));
+    const s = Math.min((VW - 2*PAD) / (mxx - mnx), (VH - 2*PAD) / (mxy - mny));
+    FIT = { mnx, mxy, s, ox: (VW - (mxx - mnx) * s) / 2, oy: (VH - (mxy - mny) * s) / 2 };
+  }
+  function project(lon, lat) {
+    const [x, y] = lcc(lon, lat);
+    return [FIT.ox + (x - FIT.mnx) * FIT.s, FIT.oy + (FIT.mxy - y) * FIT.s];
+  }
+
+  const mp = { famId: "teranet", measure: null, ptype: "Composite", yi: 0, timer: null, M: null, sc: null, years: [] };
+  const mpFamily = byId("mp-family"), mpMeasure = byId("mp-measure"), mpPtype = byId("mp-ptype"),
+        landG = byId("mp-land"), housesG = byId("mp-houses"), yearSlider = byId("mp-year");
+  let mapBaseDrawn = false;
+
+  Object.keys(FAM).forEach(fid => { const o = document.createElement("option"); o.value = fid; o.textContent = FAM[fid].name; mpFamily.appendChild(o); });
+
+  function populateMpMeasure() {
+    const fam = FAM[mp.famId]; mpMeasure.innerHTML = "";
+    fam.measures.forEach(m => { const o = document.createElement("option"); o.value = m.key; o.textContent = m.label; mpMeasure.appendChild(o); });
+    if (!fam.measures.find(m => m.key === mp.measure)) mp.measure = hmMeasureDefault(fam);
+    mpMeasure.value = mp.measure;
+  }
+  function toggleMpPtype() {
+    const has = mp.famId === "crea"; byId("mp-ptype-field").classList.toggle("hidden", !has);
+    if (!has) return;
+    mpPtype.innerHTML = "";
+    FAM.crea.property_types.forEach(p => { const o = document.createElement("option"); o.value = p; o.textContent = p; mpPtype.appendChild(o); });
+    if (!FAM.crea.property_types.includes(mp.ptype)) mp.ptype = "Composite";
+    mpPtype.value = mp.ptype;
+  }
+
+  function ringPath(ring) {
+    let d = "";
+    for (let i = 0; i < ring.length; i++) { const [x, y] = project(ring[i][0], ring[i][1]); d += (i ? "L" : "M") + x.toFixed(1) + " " + y.toFixed(1); }
+    return d + "Z";
+  }
+  function renderMapBase() {
+    if (!GEO) { landG.innerHTML = ""; return; }
+    landG.innerHTML = GEO.features.map(f => `<path d="${f.g.map(poly => poly.map(ringPath).join("")).join("")}"><title>${f.n}</title></path>`).join("");
+  }
+  function renderMapLabels() {
+    byId("mp-labels").innerHTML = Object.keys(PROV).map(name => {
+      const [x, y] = project(PROV[name][0], PROV[name][1]);
+      return `<text class="mp-label" x="${x.toFixed(1)}" y="${(y + 6).toFixed(1)}">${ABBR[name] || ""}</text>`;
+    }).join("");
+  }
+
+  function buildMapData() {
+    populateMpMeasure();
+    mp.M = snapshotMatrix(mp.famId, mp.measure, mp.ptype);
+    mp.years = mp.M.years;
+    const isPct = FAM[mp.famId].measures.find(m => m.key === mp.measure).fmt === "pct2";
+    // scale over the mapped geographies only (exclude national aggregate, shown in the badge)
+    const vals = []; mp.M.rows.forEach(r => { if (geoPoint(r.geo)) r.values.forEach(v => { if (v != null) vals.push(v); }); });
+    mp.sc = computeScale(vals, isPct);
+    if (mp.yi > mp.years.length - 1) mp.yi = mp.years.length - 1;
+    yearSlider.max = Math.max(0, mp.years.length - 1);
+    yearSlider.value = mp.yi;
+  }
+
+  function defaultYearIdx() {
+    const natRow = mp.M.rows.find(r => r.geo === FAM[mp.famId].national);
+    if (natRow) for (let i = natRow.values.length - 1; i >= 0; i--) if (natRow.values[i] != null) return i;
+    return mp.years.length - 1;
+  }
+
+  function renderMapHouses() {
+    const fam = FAM[mp.famId], mDef = fam.measures.find(m => m.key === mp.measure), isPct = mDef.fmt === "pct2";
+    const yi = mp.yi, year = mp.years[yi];
+    byId("mp-title").textContent = fam.name + (mp.famId === "crea" ? " — " + mp.ptype : "");
+    byId("mp-unit").textContent = "Metric: " + mDef.label + "  ·  " + mDef.unit + "  ·  " + year;
+    byId("mp-source").textContent = "Source: " + fam.source;
+    byId("mp-year-lab").textContent = year;
+
+    const items = [];
+    mp.M.rows.forEach(r => {
+      const v = r.values[yi]; if (v == null) return;
+      const pt = geoPoint(r.geo); if (!pt) return;      // national aggregate → badge, not a house
+      const [px, py] = project(pt[0], pt[1]);
+      const cs = scaleColor(v, mp.sc);
+      items.push({ geo: r.geo, v, px, py, size: 16 + cs.t * 40, col: cs.col });
+    });
+    items.sort((a, b) => b.size - a.size);              // big first so small stay clickable on top
+    housesG.innerHTML = items.map(it => {
+      const k = (it.size / 24).toFixed(3);
+      return `<g transform="translate(${it.px.toFixed(1)},${it.py.toFixed(1)})">` +
+        `<circle class="mp-dot" r="1.7"></circle>` +
+        `<g class="mp-house" data-geo="${encodeURIComponent(it.geo)}">` +
+        `<g transform="translate(${(-k*12.5).toFixed(2)},${(-k*21.4).toFixed(2)}) scale(${k})">` +
+        `<path d="M12 2.6 22.2 11H19.8V21.4H5.2V11H2.8Z" fill="${it.col}"/>` +
+        `<rect x="10" y="14.6" width="4" height="6.8" rx="0.4" fill="rgba(0,0,0,0.32)"/></g></g></g>`;
+    }).join("");
+
+    const natRow = mp.M.rows.find(r => r.geo === fam.national);
+    const nv = natRow ? natRow.values[yi] : null;
+    byId("mp-badge").innerHTML =
+      `<div class="bn">${fam.short} · national · ${year}</div>` +
+      `<div class="bv">${nv == null ? "–" : fmt(nv, mDef.fmt)}</div>` +
+      (isPct && nv != null ? `<div class="bc" style="color:${nv > 0 ? "#34d399" : nv < 0 ? "#f87171" : "#8892b0"}">${nv > 0 ? "▲" : nv < 0 ? "▼" : "▪"} prices ${nv > 0 ? "rising" : nv < 0 ? "falling" : "flat"}</div>` : "");
+    byId("mp-legend").innerHTML = legendHTML(mp.sc, mDef, true);
+  }
+
+  housesG.addEventListener("mousemove", e => {
+    const g = e.target.closest(".mp-house");
+    if (!g || !mp.M) { hmTip.classList.remove("on"); return; }
+    const geo = decodeURIComponent(g.dataset.geo), r = mp.M.rows.find(x => x.geo === geo);
+    const mDef = FAM[mp.famId].measures.find(m => m.key === mp.measure), v = r.values[mp.yi];
+    hmTip.innerHTML = `<b>${geo}</b><div class="muted">${mp.years[mp.yi]} · ${mDef.label}</div>` +
+      `<div style="margin-top:3px;font-weight:700">${fmt(v, mDef.fmt)}</div>`;
+    hmTip.classList.add("on");
+    const pad = 14, w = hmTip.offsetWidth, ht = hmTip.offsetHeight;
+    let x = e.clientX + pad, y = e.clientY + pad;
+    if (x + w > window.innerWidth - 8) x = e.clientX - w - pad;
+    if (y + ht > window.innerHeight - 8) y = e.clientY - ht - pad;
+    hmTip.style.left = x + "px"; hmTip.style.top = y + "px";
+  });
+  housesG.addEventListener("mouseleave", () => hmTip.classList.remove("on"));
+  housesG.addEventListener("click", e => {
+    const g = e.target.closest(".mp-house"); if (!g) return;
+    const geo = decodeURIComponent(g.dataset.geo);
+    stopPlay(); hmTip.classList.remove("on");
+    state.measure = mp.measure;
+    if (mp.famId === "crea") state.ptype = mp.ptype;
+    openDetail(mp.famId);
+    if (FAM[mp.famId].geographies.includes(geo)) state.selected = new Set([geo]);
+    if (mp.famId === "crea") ptypeSel.value = mp.ptype;
+    measureSel.value = state.measure;
+    renderDetail();
+  });
+
+  function stopPlay() { if (mp.timer) { clearInterval(mp.timer); mp.timer = null; byId("mp-play").textContent = "▶ Play"; } }
+  function togglePlay() {
+    if (mp.timer) { stopPlay(); return; }
+    if (mp.years.length < 2) return;
+    byId("mp-play").textContent = "⏸ Pause";
+    mp.timer = setInterval(() => { mp.yi = (mp.yi + 1) % mp.years.length; yearSlider.value = mp.yi; renderMapHouses(); }, 650);
+  }
+  byId("mp-play").addEventListener("click", togglePlay);
+  yearSlider.addEventListener("input", () => { stopPlay(); mp.yi = +yearSlider.value; renderMapHouses(); });
+
+  mpFamily.addEventListener("change", () => {
+    stopPlay(); const prevYear = mp.years[mp.yi];
+    mp.famId = mpFamily.value;
+    if (!FAM[mp.famId].measures.find(m => m.key === mp.measure)) mp.measure = hmMeasureDefault(FAM[mp.famId]);
+    toggleMpPtype(); buildMapData();
+    const ni = mp.years.indexOf(prevYear);
+    const natRow = mp.M.rows.find(r => r.geo === FAM[mp.famId].national);
+    const covered = ni >= 0 && natRow && natRow.values[ni] != null;   // keep year only if national has data then
+    mp.yi = covered ? ni : defaultYearIdx();
+    yearSlider.value = mp.yi; renderMapHouses();
+  });
+  mpMeasure.addEventListener("change", () => { stopPlay(); mp.measure = mpMeasure.value; buildMapData(); renderMapHouses(); });
+  mpPtype.addEventListener("change", () => { stopPlay(); mp.ptype = mpPtype.value; buildMapData(); renderMapHouses(); });
+  [backBtn, cmpBtn].forEach(b => b.addEventListener("click", stopPlay));
+
+  function showMap() {
+    state.view = "map"; showView("map");
+    if (!FIT) fitProjection();
+    if (!mapBaseDrawn) { renderMapBase(); renderMapLabels(); mapBaseDrawn = true; }
+    mpFamily.value = mp.famId; toggleMpPtype(); buildMapData();
+    mp.yi = defaultYearIdx(); yearSlider.value = mp.yi; renderMapHouses();
+  }
+  byId("map-btn").addEventListener("click", showMap);
+  byId("mp-lead").innerHTML =
+    "Canada's house-price movements on the <b>map</b>. Each house sits on its city (Teranet) or province (CREA / StatCan), " +
+    "<b>sized</b> by the metric and colored <b style='color:#34d399'>green</b> (rising) / <b style='color:#f87171'>red</b> (falling). " +
+    "Drag the <b>year</b> slider or hit <b>▶ Play</b> to watch the market move through time; click a house to open it in Explore.";
+
+  buildOverview();
+})();
+</script>
+</body>
+</html>

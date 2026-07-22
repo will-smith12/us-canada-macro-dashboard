@@ -1,0 +1,1962 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>US &amp; Canada Macro Indicators Dashboard</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+<script src="chart.umd.min.js"></script>
+<script src="hammer.min.js"></script>
+<script src="chartjs-plugin-zoom.min.js"></script>
+<script src="jspdf.umd.min.js"></script>
+<script src="pptxgen.bundle.js"></script>
+<script src="xlsx.full.min.js"></script>
+<script src="data.js"></script>
+<style>
+  :root {
+    --bg:      #0a0f1e;
+    --panel:   rgba(255,255,255,0.05);
+    --panel2:  #0d1526;
+    --line:    rgba(255,255,255,0.08);
+    --text:    #eef2ff;
+    --muted:   #8892b0;
+    --ca:      #ef4444;
+    --us:      #3b82f6;
+    --accent:  #818cf8;
+    --accent2: #38bdf8;
+  }
+  * { box-sizing: border-box; }
+  body {
+    margin: 0;
+    font-family: 'Inter', -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+    background: var(--bg);
+    color: var(--text);
+  }
+
+  /* ── Header ── */
+  header {
+    display: flex;
+    align-items: center;
+    gap: 16px;
+    padding: 18px 32px;
+    border-bottom: 1px solid var(--line);
+    background: var(--panel2);
+  }
+  .header-text h1 {
+    margin: 0;
+    font-size: 24px;
+    font-weight: 700;
+    letter-spacing: -0.3px;
+  }
+  .header-text p {
+    margin: 5px 0 0;
+    color: var(--muted);
+    font-size: 13px;
+  }
+  .legend-dot {
+    display: inline-block;
+    width: 10px;
+    height: 10px;
+    border-radius: 50%;
+    margin: 0 5px 0 14px;
+    vertical-align: middle;
+  }
+
+  /* ── Hamburger button ── */
+  .hamburger {
+    background: none;
+    border: 1px solid var(--line);
+    color: var(--muted);
+    font-size: 18px;
+    line-height: 1;
+    width: 38px;
+    height: 38px;
+    border-radius: 8px;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
+    transition: 0.12s;
+  }
+  .hamburger:hover { color: var(--text); border-color: rgba(255,255,255,0.18); background: var(--panel); }
+  .hamburger.open  { color: var(--accent); border-color: var(--accent); }
+
+  /* ── Drawer overlay + panel ── */
+  .drawer-overlay {
+    display: none;
+    position: fixed;
+    inset: 0;
+    background: rgba(0,0,0,0.5);
+    z-index: 100;
+  }
+  .drawer-overlay.open { display: block; }
+  .drawer {
+    position: fixed;
+    top: 0; left: 0; bottom: 0;
+    width: 320px;
+    background: #0d1526;
+    border-right: 1px solid var(--line);
+    z-index: 101;
+    transform: translateX(-100%);
+    transition: transform 0.22s cubic-bezier(0.4,0,0.2,1);
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+  }
+  .drawer.open { transform: translateX(0); }
+  .drawer-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 20px 22px 16px;
+    border-bottom: 1px solid var(--line);
+    flex-shrink: 0;
+  }
+  .drawer-header h2 {
+    margin: 0;
+    font-size: 15px;
+    font-weight: 600;
+    color: var(--text);
+  }
+  .drawer-header p {
+    margin: 4px 0 0;
+    font-size: 11.5px;
+    color: var(--muted);
+  }
+  .drawer-close {
+    background: none;
+    border: none;
+    color: var(--muted);
+    font-size: 20px;
+    cursor: pointer;
+    padding: 4px;
+    line-height: 1;
+    border-radius: 4px;
+    transition: 0.12s;
+    flex-shrink: 0;
+    align-self: flex-start;
+  }
+  .drawer-close:hover { color: var(--text); }
+  .drawer-list {
+    overflow-y: auto;
+    padding: 12px 0 24px;
+    flex: 1;
+  }
+  .drawer-item {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 12px 22px;
+    border-bottom: 1px solid rgba(255,255,255,0.04);
+    text-decoration: none;
+    transition: background 0.12s;
+    gap: 12px;
+  }
+  .drawer-item:hover { background: rgba(255,255,255,0.04); }
+  .drawer-item .di-name {
+    font-size: 13.5px;
+    font-weight: 500;
+    color: var(--text);
+    line-height: 1.3;
+  }
+  .drawer-item .di-type {
+    font-size: 11px;
+    color: var(--muted);
+    margin-top: 2px;
+    text-transform: uppercase;
+    letter-spacing: 0.4px;
+  }
+  .drawer-item .di-link {
+    flex-shrink: 0;
+    font-size: 11px;
+    font-weight: 600;
+    color: var(--accent);
+    white-space: nowrap;
+    opacity: 0.8;
+  }
+  .drawer-item:hover .di-link { opacity: 1; }
+  .drawer-item.no-link .di-link { color: var(--muted); opacity: 0.5; }
+
+  /* ── Control bar ── */
+  .control-bar {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 11px 32px;
+    border-bottom: 1px solid var(--line);
+    background: var(--panel2);
+    flex-wrap: wrap;
+  }
+  .ctrl-group {
+    display: flex;
+    align-items: center;
+    gap: 7px;
+  }
+  .ctrl-label {
+    font-size: 11px;
+    font-weight: 600;
+    color: var(--muted);
+    text-transform: uppercase;
+    letter-spacing: 0.6px;
+    white-space: nowrap;
+  }
+  .ctrl-select {
+    background: #111a2e;
+    border: 1px solid var(--line);
+    color: var(--text);
+    font-family: inherit;
+    font-size: 13px;
+    font-weight: 500;
+    padding: 7px 30px 7px 12px;
+    border-radius: 8px;
+    cursor: pointer;
+    appearance: none;
+    -webkit-appearance: none;
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='10' height='6' viewBox='0 0 10 6'%3E%3Cpath d='M1 1l4 4 4-4' stroke='%238892b0' stroke-width='1.5' fill='none' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E");
+    background-repeat: no-repeat;
+    background-position: right 10px center;
+    transition: border-color 0.15s, background-color 0.15s;
+  }
+  .ctrl-select:hover {
+    border-color: rgba(255,255,255,0.18);
+    background-color: #142035;
+  }
+  .ctrl-select:focus {
+    outline: none;
+    border-color: var(--accent);
+    box-shadow: 0 0 0 3px rgba(129,140,248,0.15);
+  }
+  .ctrl-select option {
+    background: #0d1526;
+    color: var(--text);
+  }
+  .ctrl-divider {
+    width: 1px;
+    height: 22px;
+    background: var(--line);
+    margin: 0 2px;
+    flex-shrink: 0;
+  }
+
+  /* ── Range buttons ── */
+  .grp {
+    display: flex;
+    gap: 2px;
+    background: #111a2e;
+    border: 1px solid var(--line);
+    border-radius: 8px;
+    padding: 3px;
+  }
+  .grp button {
+    background: none;
+    border: none;
+    color: var(--muted);
+    padding: 5px 10px;
+    font-size: 12px;
+    font-family: inherit;
+    font-weight: 600;
+    border-radius: 6px;
+    cursor: pointer;
+    transition: 0.12s;
+  }
+  .grp button:hover { color: var(--text); background: rgba(255,255,255,0.06); }
+  .grp button.active { background: var(--accent2); color: #08131f; }
+  .reset-btn {
+    background: none;
+    border: 1px solid var(--line);
+    color: var(--muted);
+    font-family: inherit;
+    font-size: 12px;
+    font-weight: 500;
+    padding: 6px 12px;
+    border-radius: 8px;
+    cursor: pointer;
+    transition: 0.12s;
+  }
+  .reset-btn:hover { color: var(--text); border-color: rgba(255,255,255,0.18); }
+  .comp-toggle {
+    display: none;
+    background: none;
+    border: 1px solid var(--line);
+    color: var(--muted);
+    font-family: inherit;
+    font-size: 12px;
+    font-weight: 500;
+    padding: 6px 12px;
+    border-radius: 8px;
+    cursor: pointer;
+    transition: 0.12s;
+  }
+  .comp-toggle:hover { color: var(--text); border-color: rgba(255,255,255,0.18); }
+  .comp-toggle.active { background: rgba(129,140,248,0.15); border-color: #818cf8; color: #818cf8; }
+  .export-wrap { position: relative; display: inline-block; }
+  .export-btn {
+    background: none;
+    border: 1px solid var(--line);
+    color: var(--muted);
+    font-family: inherit;
+    font-size: 12px;
+    font-weight: 500;
+    padding: 6px 12px;
+    border-radius: 8px;
+    cursor: pointer;
+    transition: 0.12s;
+  }
+  .export-btn:hover { color: var(--text); border-color: rgba(255,255,255,0.18); }
+  .export-btn.open { background: rgba(129,140,248,0.15); border-color: #818cf8; color: #818cf8; }
+  .export-menu {
+    position: absolute;
+    top: calc(100% + 6px);
+    right: 0;
+    min-width: 180px;
+    background: var(--panel2);
+    border: 1px solid var(--line);
+    border-radius: 10px;
+    padding: 6px;
+    box-shadow: 0 12px 30px rgba(0,0,0,0.45);
+    z-index: 50;
+    display: none;
+  }
+  .export-menu.open { display: block; }
+  .export-menu button {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+    width: 100%;
+    text-align: left;
+    background: none;
+    border: none;
+    color: var(--text);
+    font-family: inherit;
+    font-size: 12.5px;
+    font-weight: 500;
+    padding: 8px 10px;
+    border-radius: 7px;
+    cursor: pointer;
+    transition: 0.12s;
+  }
+  .export-menu button:hover { background: rgba(255,255,255,0.06); }
+  .export-menu button:disabled { color: var(--muted); opacity: 0.5; cursor: not-allowed; }
+  .export-menu button:disabled:hover { background: none; }
+  .export-menu .ext { color: var(--muted); font-size: 11px; }
+  .hint {
+    color: var(--muted);
+    font-size: 11.5px;
+    margin-left: 2px;
+  }
+
+  /* ── Main content ── */
+  main { padding: 28px 32px; }
+  .tab-head {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start;
+    flex-wrap: wrap;
+    gap: 12px;
+    margin-bottom: 6px;
+  }
+  .tab-head h2 {
+    margin: 0;
+    font-size: 22px;
+    font-weight: 700;
+    letter-spacing: -0.2px;
+  }
+  .tab-head .meta {
+    color: var(--muted);
+    font-size: 12.5px;
+    margin-top: 5px;
+  }
+  .desc {
+    color: var(--muted);
+    font-size: 13.5px;
+    margin: 10px 0 22px;
+    max-width: 840px;
+    line-height: 1.6;
+  }
+
+  /* ── Cards ── */
+  .cards {
+    display: flex;
+    gap: 14px;
+    flex-wrap: wrap;
+    margin-bottom: 22px;
+  }
+  .card {
+    background: var(--panel);
+    backdrop-filter: blur(12px);
+    -webkit-backdrop-filter: blur(12px);
+    border: 1px solid var(--line);
+    border-radius: 12px;
+    padding: 18px 22px;
+    min-width: 190px;
+    transition: border-color 0.15s;
+  }
+  .card:hover { border-color: rgba(255,255,255,0.14); }
+  .card .lbl {
+    font-size: 11px;
+    color: var(--muted);
+    text-transform: uppercase;
+    letter-spacing: 0.6px;
+    font-weight: 600;
+  }
+  .card .val {
+    font-size: 28px;
+    font-weight: 700;
+    margin-top: 6px;
+    letter-spacing: -0.5px;
+  }
+  .card .sub {
+    font-size: 11.5px;
+    color: var(--muted);
+    margin-top: 4px;
+  }
+  .card.ca .val { color: var(--ca); }
+  .card.us .val { color: var(--us); }
+
+  /* ── Chart ── */
+  .chart-box {
+    background: var(--panel);
+    backdrop-filter: blur(12px);
+    -webkit-backdrop-filter: blur(12px);
+    border: 1px solid var(--line);
+    border-radius: 14px;
+    padding: 20px 20px 10px;
+    height: 480px;
+    position: relative;
+  }
+
+  /* ── Sources / footer ── */
+  .src {
+    color: var(--muted);
+    font-size: 11.5px;
+    margin-top: 16px;
+    line-height: 1.7;
+  }
+  footer {
+    padding: 14px 32px;
+    color: var(--muted);
+    font-size: 12px;
+    border-top: 1px solid var(--line);
+    margin-top: 4px;
+  }
+
+  /* ── News Desk emblem button (header) ── */
+  .news-btn {
+    position: relative;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    margin-left: auto;
+    flex-shrink: 0;
+    background: linear-gradient(90deg, var(--accent), var(--accent2));
+    border: 1px solid var(--accent);
+    color: #0a0f1e;
+    font-family: inherit;
+    font-size: 13px;
+    font-weight: 700;
+    letter-spacing: 0.3px;
+    line-height: 1;
+    height: 38px;
+    padding: 0 16px;
+    border-radius: 8px;
+    cursor: pointer;
+    transition: 0.12s;
+    box-shadow: 0 2px 10px rgba(129,140,248,0.25);
+  }
+  .news-btn:hover { filter: brightness(1.08); box-shadow: 0 3px 14px rgba(129,140,248,0.4); }
+  .news-btn.open { filter: brightness(0.95); }
+  .news-btn .news-btn-icon { font-size: 15px; }
+  .news-btn .unread {
+    position: absolute;
+    top: -4px; right: -4px;
+    width: 10px; height: 10px;
+    border-radius: 50%;
+    background: var(--ca);
+    border: 2px solid var(--panel2);
+    box-shadow: 0 0 0 0 rgba(239,68,68,0.7);
+    animation: news-pulse 1.8s ease-out infinite;
+  }
+  @keyframes news-pulse {
+    0%   { box-shadow: 0 0 0 0 rgba(239,68,68,0.55); }
+    70%  { box-shadow: 0 0 0 6px rgba(239,68,68,0); }
+    100% { box-shadow: 0 0 0 0 rgba(239,68,68,0); }
+  }
+
+  /* ── News Desk overlay + window ── */
+  .news-overlay {
+    position: fixed;
+    inset: 0;
+    background: rgba(0,0,0,0.55);
+    backdrop-filter: blur(2px);
+    z-index: 200;
+    display: none;
+    align-items: center;
+    justify-content: center;
+    padding: 24px;
+    opacity: 0;
+    transition: opacity 0.18s ease;
+  }
+  .news-overlay.show { display: flex; opacity: 1; }
+  .news-window {
+    width: min(1200px, 95vw);
+    height: min(88vh, 920px);
+    background: var(--panel2);
+    border: 1px solid var(--line);
+    border-radius: 14px;
+    box-shadow: 0 24px 70px rgba(0,0,0,0.6);
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+    transform: scale(0.96);
+    transition: transform 0.18s cubic-bezier(0.4,0,0.2,1);
+  }
+  .news-overlay.show .news-window { transform: scale(1); }
+
+  .news-titlebar {
+    display: flex;
+    align-items: center;
+    gap: 14px;
+    padding: 14px 18px;
+    border-bottom: 1px solid var(--line);
+    background: linear-gradient(90deg, rgba(129,140,248,0.16), rgba(56,189,248,0.10));
+    flex-shrink: 0;
+  }
+  .news-title {
+    display: flex;
+    align-items: center;
+    gap: 9px;
+    font-weight: 700;
+    font-size: 13px;
+    letter-spacing: 1.4px;
+    text-transform: uppercase;
+  }
+  .news-live-dot {
+    width: 9px; height: 9px;
+    border-radius: 50%;
+    background: var(--ca);
+    box-shadow: 0 0 0 0 rgba(239,68,68,0.7);
+    animation: news-pulse 1.6s ease-out infinite;
+  }
+  .news-filter {
+    display: flex;
+    gap: 4px;
+    background: rgba(255,255,255,0.04);
+    border: 1px solid var(--line);
+    border-radius: 8px;
+    padding: 3px;
+  }
+  .news-filter button {
+    background: none;
+    border: none;
+    color: var(--muted);
+    font: inherit;
+    font-size: 11px;
+    font-weight: 600;
+    letter-spacing: 0.4px;
+    padding: 4px 10px;
+    border-radius: 6px;
+    cursor: pointer;
+    transition: 0.12s;
+  }
+  .news-filter button:hover { color: var(--text); }
+  .news-filter button.active { color: var(--text); background: var(--panel); }
+  .news-close {
+    background: none;
+    border: 1px solid var(--line);
+    color: var(--muted);
+    width: 32px; height: 32px;
+    border-radius: 8px;
+    font-size: 18px;
+    line-height: 1;
+    cursor: pointer;
+    transition: 0.12s;
+    flex-shrink: 0;
+  }
+  .news-close:hover { color: var(--text); border-color: rgba(255,255,255,0.18); background: var(--panel); }
+
+  /* ── Feed rows ── */
+  .news-body {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    min-height: 0;
+  }
+  .feed {
+    display: flex;
+    flex-direction: column;
+    min-height: 0;
+    border-bottom: 1px solid var(--line);
+  }
+  .feed.macro  { flex: 40; }
+  .feed.gov    { flex: 38; }
+  .feed.social { flex: 22; border-bottom: none; }
+  .feed-head {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 11px 18px 9px;
+    flex-shrink: 0;
+  }
+  .feed-head h3 {
+    margin: 0;
+    font-size: 11px;
+    font-weight: 700;
+    letter-spacing: 1px;
+    text-transform: uppercase;
+    color: var(--muted);
+  }
+  .feed-head .feed-icon { font-size: 14px; }
+  .feed-count {
+    font-size: 10px;
+    color: var(--muted);
+    background: rgba(255,255,255,0.05);
+    border: 1px solid var(--line);
+    border-radius: 20px;
+    padding: 1px 8px;
+  }
+  .feed-list {
+    overflow-y: auto;
+    padding: 0 14px 12px;
+    display: flex;
+    flex-direction: column;
+    gap: 7px;
+    min-height: 0;
+  }
+  .feed-list::-webkit-scrollbar { width: 8px; }
+  .feed-list::-webkit-scrollbar-thumb { background: rgba(255,255,255,0.10); border-radius: 4px; }
+
+  .news-item[hidden] { display: none; }
+
+  /* Feed loading / error states */
+  .feed-status {
+    display: flex;
+    align-items: center;
+    gap: 9px;
+    padding: 14px 4px;
+    color: var(--muted);
+    font-size: 12.5px;
+  }
+  .feed-status.error { color: #fca5a5; }
+  .feed-spinner {
+    width: 13px; height: 13px;
+    border: 2px solid rgba(255,255,255,0.18);
+    border-top-color: var(--accent2);
+    border-radius: 50%;
+    animation: feed-spin 0.7s linear infinite;
+    flex-shrink: 0;
+  }
+  @keyframes feed-spin { to { transform: rotate(360deg); } }
+
+  /* Macro news cards */
+  .macro-card {
+    display: flex;
+    gap: 11px;
+    padding: 10px 12px;
+    background: var(--panel);
+    border: 1px solid var(--line);
+    border-left: 3px solid var(--line);
+    border-radius: 8px;
+  }
+  .macro-card.us { border-left-color: var(--us); }
+  .macro-card.ca { border-left-color: var(--ca); }
+  .macro-card .body { flex: 1; min-width: 0; }
+  .macro-card .headline { font-size: 13.5px; font-weight: 600; line-height: 1.35; }
+  .macro-card .dek { font-size: 12px; color: var(--muted); margin-top: 3px; line-height: 1.4; }
+  .macro-card .meta { display: flex; align-items: center; gap: 8px; margin-top: 7px; }
+
+  .src-badge {
+    font-size: 10px; font-weight: 700; letter-spacing: 0.4px;
+    padding: 2px 7px; border-radius: 4px;
+    background: rgba(255,255,255,0.06); color: var(--text);
+    flex-shrink: 0;
+  }
+  .src-badge.cnbc { color: #f8b912; background: rgba(248,185,18,0.14); }
+  .src-badge.bnn  { color: #2dd4bf; background: rgba(45,212,191,0.14); }
+  .src-badge.mw   { color: #22c55e; background: rgba(34,197,94,0.14); }
+  .time-ago { font-size: 11px; color: var(--muted); }
+
+  /* Gov updates — structured rows */
+  .gov-row {
+    display: grid;
+    grid-template-columns: auto 1fr auto;
+    align-items: center;
+    gap: 10px;
+    padding: 9px 12px;
+    background: var(--panel);
+    border: 1px solid var(--line);
+    border-radius: 8px;
+  }
+  .gov-agency {
+    display: flex; align-items: center; gap: 7px;
+    font-size: 12px; font-weight: 600;
+    min-width: 132px;
+  }
+  .flag { font-size: 13px; }
+  .gov-mid { min-width: 0; }
+  .gov-headline { font-size: 13px; font-weight: 500; line-height: 1.3; }
+  .gov-sub { font-size: 11px; color: var(--muted); margin-top: 2px; }
+  .pill {
+    font-size: 9.5px; font-weight: 700; letter-spacing: 0.5px; text-transform: uppercase;
+    padding: 2px 7px; border-radius: 4px; flex-shrink: 0;
+  }
+  .pill.data   { color: var(--accent2); background: rgba(56,189,248,0.14); }
+  .pill.policy { color: #f59e0b; background: rgba(245,158,11,0.15); }
+  .gov-val { text-align: right; font-size: 13px; font-weight: 700; }
+  .gov-val .prev { display: block; font-size: 10.5px; font-weight: 500; color: var(--muted); }
+  .delta-up   { color: #22c55e; }
+  .delta-down { color: var(--ca); }
+
+  /* Social strip — compact */
+  .social-post {
+    display: flex; align-items: flex-start; gap: 9px;
+    padding: 8px 10px;
+    background: var(--panel);
+    border: 1px solid var(--line);
+    border-radius: 8px;
+    font-size: 12px;
+  }
+  .avatar {
+    width: 26px; height: 26px; border-radius: 50%;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 11px; font-weight: 700; color: var(--text);
+    background: linear-gradient(135deg, var(--accent), var(--accent2));
+    flex-shrink: 0;
+  }
+  .social-body { flex: 1; min-width: 0; }
+  .social-meta { display: flex; align-items: center; gap: 6px; }
+  .handle { font-weight: 600; font-size: 12px; }
+  .platform { font-size: 11px; color: var(--muted); }
+  .social-text { font-size: 12px; color: var(--text); margin-top: 2px; line-height: 1.35; }
+  .social-actions { display: flex; gap: 6px; align-items: center; flex-shrink: 0; }
+  .share-btn {
+    background: none; border: 1px solid var(--line); color: var(--muted);
+    font: inherit; font-size: 11px; padding: 3px 8px; border-radius: 6px; cursor: pointer;
+    transition: 0.12s;
+  }
+  .share-btn:hover { color: var(--text); border-color: rgba(255,255,255,0.18); background: rgba(255,255,255,0.04); }
+
+  /* ── Search box + freshness (titlebar) ── */
+  .news-search {
+    flex: 1 1 160px;
+    min-width: 120px;
+    max-width: 460px;
+    background: rgba(255,255,255,0.05);
+    border: 1px solid var(--line);
+    border-radius: 8px;
+    color: var(--text);
+    font: inherit;
+    font-size: 12.5px;
+    padding: 7px 11px;
+    outline: none;
+    transition: 0.12s;
+  }
+  .news-search::placeholder { color: var(--muted); }
+  .news-search:focus { border-color: var(--accent); background: rgba(255,255,255,0.07); }
+  .news-fresh {
+    font-size: 11px;
+    color: var(--muted);
+    white-space: nowrap;
+    flex-shrink: 0;
+  }
+
+  /* ── Topic filter bar ── */
+  .news-topics {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 6px;
+    padding: 9px 18px;
+    border-bottom: 1px solid var(--line);
+    background: rgba(255,255,255,0.015);
+    flex-shrink: 0;
+  }
+  .news-topics:empty { display: none; }
+  .topic-filter {
+    background: rgba(255,255,255,0.04);
+    border: 1px solid var(--line);
+    color: var(--muted);
+    font: inherit;
+    font-size: 11px;
+    font-weight: 600;
+    letter-spacing: 0.3px;
+    padding: 4px 11px;
+    border-radius: 20px;
+    cursor: pointer;
+    transition: 0.12s;
+  }
+  .topic-filter:hover { color: var(--text); border-color: rgba(255,255,255,0.18); }
+  .topic-filter.active {
+    color: #0a0f1e;
+    background: linear-gradient(90deg, var(--accent), var(--accent2));
+    border-color: transparent;
+  }
+  .topic-filter .tf-count { opacity: 0.7; font-weight: 700; margin-left: 4px; }
+
+  /* ── Source favicons (shared) ── */
+  .fav {
+    position: relative;
+    width: 30px; height: 30px;
+    border-radius: 7px;
+    flex-shrink: 0;
+    overflow: hidden;
+  }
+  .fav.round { border-radius: 50%; }
+  .fav-letter {
+    position: absolute; inset: 0;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 12px; font-weight: 700; color: var(--text);
+    background: linear-gradient(135deg, var(--accent), var(--accent2));
+  }
+  .fav img {
+    position: absolute; inset: 0;
+    width: 100%; height: 100%;
+    object-fit: cover;
+    background: var(--panel);
+  }
+
+  /* ── Topic chips on cards ── */
+  .topic-chip {
+    font-size: 9.5px; font-weight: 700; letter-spacing: 0.4px;
+    text-transform: uppercase;
+    padding: 2px 7px; border-radius: 4px;
+    background: rgba(255,255,255,0.06); color: var(--muted);
+    flex-shrink: 0;
+  }
+  .topic-chip.t-inflation { color: #f59e0b; background: rgba(245,158,11,0.14); }
+  .topic-chip.t-rates     { color: #38bdf8; background: rgba(56,189,248,0.14); }
+  .topic-chip.t-jobs      { color: #22c55e; background: rgba(34,197,94,0.14); }
+  .topic-chip.t-growth    { color: #a78bfa; background: rgba(167,139,250,0.16); }
+  .topic-chip.t-housing   { color: #f472b6; background: rgba(244,114,182,0.14); }
+  .topic-chip.t-markets   { color: #2dd4bf; background: rgba(45,212,191,0.14); }
+  .topic-chip.t-trade     { color: #fb923c; background: rgba(251,146,60,0.14); }
+  .topic-chip.t-fed       { color: #818cf8; background: rgba(129,140,248,0.16); }
+  .topic-chip.t-boc       { color: #ef4444; background: rgba(239,68,68,0.14); }
+  .topic-chip.t-consumer  { color: #facc15; background: rgba(250,204,21,0.13); }
+
+  /* ── Click-to-expand ── */
+  .news-card-clickable { cursor: pointer; transition: border-color 0.12s, background 0.12s; }
+  .news-card-clickable:hover { border-color: rgba(255,255,255,0.16); }
+  .clamp {
+    display: -webkit-box;
+    -webkit-line-clamp: 2;
+    -webkit-box-orient: vertical;
+    overflow: hidden;
+  }
+  .expanded .clamp { -webkit-line-clamp: unset; overflow: visible; }
+  .expand-hint {
+    font-size: 10px; color: var(--muted); margin-top: 5px;
+    user-select: none;
+  }
+  .expanded .expand-hint .more { display: none; }
+  .expand-hint .less { display: none; }
+  .expanded .expand-hint .less { display: inline; }
+
+  @media (max-width: 640px) {
+    .news-window { height: 88vh; width: 94vw; }
+    .news-titlebar { flex-wrap: wrap; }
+    .news-search { order: 5; flex-basis: 100%; max-width: none; }
+    .gov-row { grid-template-columns: auto 1fr; }
+    .gov-val { grid-column: 2; text-align: left; }
+    .gov-agency { min-width: 0; }
+  }
+</style>
+</head>
+<body>
+
+<header>
+  <button class="hamburger" id="hamburger-btn" aria-label="Variable reference">&#9776;</button>
+  <div class="header-text">
+    <h1>US &amp; Canada Macro Indicators</h1>
+    <p>
+      Interactive dashboard &middot; one chart per indicator
+      <span class="legend-dot" style="background:var(--ca)"></span>Canada
+      <span class="legend-dot" style="background:var(--us)"></span>United States
+    </p>
+  </div>
+  <button class="news-btn" id="news-btn" aria-label="Open News Desk" title="News Desk">
+    <span class="news-btn-icon">&#128240;</span>News<span class="unread"></span>
+  </button>
+</header>
+
+<!-- Slide-out drawer -->
+<div class="drawer-overlay" id="drawer-overlay"></div>
+<div class="drawer" id="drawer">
+  <div class="drawer-header">
+    <div>
+      <h2>Variable Reference</h2>
+      <p>Click an indicator to open its Confluence page</p>
+    </div>
+    <button class="drawer-close" id="drawer-close" aria-label="Close">&times;</button>
+  </div>
+  <div class="drawer-list" id="drawer-list"></div>
+</div>
+
+<div class="control-bar">
+  <div class="ctrl-group">
+    <label class="ctrl-label" for="sel-board">Board</label>
+    <select id="sel-board" class="ctrl-select">
+      <option value="both">US-Canada</option>
+      <option value="us">US Variable</option>
+      <option value="ca">Canadian Variable</option>
+    </select>
+  </div>
+  <div class="ctrl-group">
+    <label class="ctrl-label" for="sel-time">Time</label>
+    <select id="sel-time" class="ctrl-select">
+      <option value="monthly">Monthly</option>
+      <option value="yearly">Yearly</option>
+    </select>
+  </div>
+  <div class="ctrl-group">
+    <label class="ctrl-label" for="sel-variable">Variable</label>
+    <select id="sel-variable" class="ctrl-select"></select>
+  </div>
+  <button class="comp-toggle" id="toggle-components">Show components</button>
+  <div class="ctrl-divider"></div>
+  <div class="grp" id="range-grp">
+    <button data-years="1">1Y</button>
+    <button data-years="3">3Y</button>
+    <button data-years="5">5Y</button>
+    <button data-years="10">10Y</button>
+    <button data-years="0">All</button>
+  </div>
+  <button class="reset-btn" id="reset-zoom">Reset zoom</button>
+  <div class="export-wrap">
+    <button class="export-btn" id="export-btn">Export &#9662;</button>
+    <div class="export-menu" id="export-menu">
+      <button data-fmt="png">PNG image <span class="ext">.png</span></button>
+      <button data-fmt="pdf">PDF document <span class="ext">.pdf</span></button>
+      <button data-fmt="pptx">PowerPoint slide <span class="ext">.pptx</span></button>
+      <button data-fmt="xlsx">Excel data <span class="ext">.xlsx</span></button>
+    </div>
+  </div>
+  <span class="hint">Drag to zoom &middot; scroll to zoom &middot; Shift+drag to pan</span>
+</div>
+
+<main>
+  <div class="tab-head">
+    <div>
+      <h2 id="t-name">&nbsp;</h2>
+      <div class="meta" id="t-meta"></div>
+    </div>
+  </div>
+  <div class="desc" id="t-desc"></div>
+  <div class="cards" id="t-cards"></div>
+  <div class="chart-box"><canvas id="chart"></canvas></div>
+  <div class="src" id="t-src"></div>
+</main>
+
+<footer id="foot"></footer>
+
+<script>
+// ── Confluence page URLs ─────────────────────────────────────────────────────
+// Add the Confluence URL for each indicator by name. Leave blank to show
+// "No page yet" in the drawer.
+const CONFLUENCE = {
+  'GDP Growth Rate QoQ (%)':        'https://judiai.atlassian.net/wiki/spaces/LTI/pages/3493036049/GDP+Growth+Rates',
+  'GDP per Capita (USD)':           'https://judiai.atlassian.net/wiki/spaces/LTI/pages/3494084618/GDP+Per+Capita',
+  'Inflation Rate (%)':             'https://judiai.atlassian.net/wiki/spaces/LTI/pages/3492806674/Inflation+Rate',
+  'Policy Interest Rate (%)':       'https://judiai.atlassian.net/wiki/spaces/LTI/pages/3494281221/Policy+Interest+Rate',
+  'Labour Productivity (index)':    'https://judiai.atlassian.net/wiki/spaces/LTI/pages/3493265432/Labour+Productivity',
+  'Gross Fixed Capital Formation':  'https://judiai.atlassian.net/wiki/spaces/LTI/pages/3493953554/Gross+Fixed+Capital+Formation',
+  'GDP (USD B)':                    'https://judiai.atlassian.net/wiki/spaces/LTI/pages/3493167139/GDP+Levels',
+  'Households Debt to GDP (%)':     'https://judiai.atlassian.net/wiki/spaces/LTI/pages/3493920802/Household+Debt+to+GDP+Ratio',
+  'Unemployment Rate (%)':          'https://judiai.atlassian.net/wiki/spaces/LTI/pages/3493789718/Unemployment+Rate',
+};
+// ────────────────────────────────────────────────────────────────────────────
+
+// Annual average CAD per USD (FRED DEXCAUS). Used to convert Canada's Gross
+// Fixed Capital Formation (reported in CAD Million) into USD Billion so it shares
+// the same base unit as the US series and can be compared directly.
+const FX_CAD_PER_USD = {
+  2000: 1.4855, 2001: 1.5487, 2002: 1.5704, 2003: 1.4008, 2004: 1.3017,
+  2005: 1.2115, 2006: 1.1340, 2007: 1.0734, 2008: 1.0660, 2009: 1.1412,
+  2010: 1.0298, 2011: 0.9887, 2012: 0.9995, 2013: 1.0300, 2014: 1.1043,
+  2015: 1.2791, 2016: 1.3243, 2017: 1.2984, 2018: 1.2957, 2019: 1.3269,
+  2020: 1.3422, 2021: 1.2533, 2022: 1.3014, 2023: 1.3494, 2024: 1.3699,
+  2025: 1.3973, 2026: 1.3722,
+};
+
+function fxForYear(year) {
+  const y = Number(year);
+  if (FX_CAD_PER_USD[y] != null) return FX_CAD_PER_USD[y];
+  // Fall back to the nearest available year.
+  const years = Object.keys(FX_CAD_PER_USD).map(Number);
+  const nearest = years.reduce((a, b) => Math.abs(b - y) < Math.abs(a - y) ? b : a);
+  return FX_CAD_PER_USD[nearest];
+}
+
+// Normalize Gross Fixed Capital Formation so both countries share one base unit
+// (USD Billion). Converts Canada's CAD Million series via annual CAD→USD FX, then
+// drops dualAxis so the chart uses the standard US − CA difference view (purple
+// line + Show components toggle), exactly like GDP (USD B).
+function normalizeGFCF(db) {
+  const ind = db.indicators.find(i => i.name === 'Gross Fixed Capital Formation');
+  if (!ind || ind.canada.unit !== 'CAD Million') return;   // guard: never double-convert
+  const toUSD = (cadMillion, year) =>
+    cadMillion == null ? null : (cadMillion / 1000) / fxForYear(year);
+  ind.canada.values = ind.canada.values.map((v, i) => toUSD(v, ind.dates[i].slice(0, 4)));
+  if (ind.canada.latestValue != null) {
+    const ly = (ind.canada.latestDate || '').slice(0, 4) || ind.dates[ind.dates.length - 1].slice(0, 4);
+    ind.canada.latestValue = toUSD(Number(ind.canada.latestValue), ly);
+  }
+  ind.canada.unit = 'USD Billion';
+  ind.unit = 'USD Billion';
+  ind.dualAxis = false;
+  ind.description = 'Investment in fixed assets. Canada converted from CAD to USD ' +
+    'at annual average exchange rates (FRED DEXCAUS) so both series share USD Billion.';
+}
+
+let DB = null, chart = null, active = 0, curDates = [];
+let board = 'both';         // 'both' | 'us' | 'ca'
+let timeGran = 'monthly';  // 'monthly' | 'yearly'
+let showComponents = false;
+const COL = { ca: '#ef4444', us: '#3b82f6' };
+if (window.ChartZoom) Chart.register(window.ChartZoom);
+
+function parseDate(s) {
+  const p = String(s).split('-');
+  return new Date(Date.UTC(+p[0], (+p[1] || 1) - 1, +p[2] || 1));
+}
+
+function fmt(v) {
+  if (v === null || v === undefined || v === '') return '—';
+  const n = Number(v);
+  if (!isFinite(n)) return v;
+  if (Math.abs(n) >= 1000) return n.toLocaleString(undefined, { maximumFractionDigits: 0 });
+  return n.toLocaleString(undefined, { maximumFractionDigits: 2 });
+}
+
+function normalizeToIndex(values) {
+  const base = values.find(v => v !== null && v !== 0);
+  if (!base) return values;
+  return values.map(v => v !== null ? (v / base) * 100 : null);
+}
+
+function decimateYearly(dates, values) {
+  const seen = {};
+  dates.forEach((d, i) => {
+    seen[d.slice(0, 4)] = { d, v: values[i] };
+  });
+  const out = { dates: [], values: [] };
+  Object.values(seen).forEach(({ d, v }) => { out.dates.push(d); out.values.push(v); });
+  return out;
+}
+
+function buildDropdowns() {
+  const sel = document.getElementById('sel-variable');
+  DB.indicators.forEach((ind, i) => {
+    const opt = document.createElement('option');
+    opt.value = i;
+    opt.textContent = ind.name;
+    sel.appendChild(opt);
+  });
+}
+
+function datasetFor(ind, values, color, axisId) {
+  const isBar  = ind.chartType === 'bar';
+  const isArea = ind.chartType === 'area';
+  const isStep = ind.chartType === 'stepped';
+  const ds = {
+    label: color === COL.ca ? 'Canada' : 'United States',
+    data: values.map(v => v === null ? null : Number(v)),
+    borderColor: color,
+    backgroundColor: isBar ? color + 'cc' : (isArea ? color + '33' : color),
+    borderWidth: isBar ? 0 : 2,
+    pointRadius: 0,
+    pointHoverRadius: 4,
+    tension: 0.25,
+    spanGaps: true,
+    fill: isArea ? 'origin' : false,
+    stepped: isStep ? 'before' : false,
+  };
+  if (axisId) ds.yAxisID = axisId;
+  return ds;
+}
+
+function select(i) {
+  active = i;
+  document.getElementById('sel-variable').value = i;
+  const ind = DB.indicators[i];
+
+  document.getElementById('t-name').textContent = ind.name;
+  document.getElementById('t-meta').textContent =
+    [ind.frequency, ind.unit].filter(Boolean).join('  ·  ') +
+    '   ·   ' + ind.dates.length + ' observations';
+  document.getElementById('t-desc').textContent = ind.description || '';
+
+  const cards = document.getElementById('t-cards');
+  cards.innerHTML = '';
+  const toShow = board === 'both'
+    ? [['canada','Canada','ca'],['us','United States','us']]
+    : board === 'ca' ? [['canada','Canada','ca']] : [['us','United States','us']];
+  toShow.forEach(([k, label, cls]) => {
+    const m = ind[k];
+    const c = document.createElement('div');
+    c.className = 'card ' + cls;
+    c.innerHTML = '<div class="lbl">' + label + ' — latest</div>' +
+      '<div class="val">' + fmt(m.latestValue) + '</div>' +
+      '<div class="sub">' + (m.latestDate ? 'as of ' + m.latestDate.slice(0, 10) : 'no data') + '</div>';
+    cards.appendChild(c);
+  });
+  if (board === 'both' && !ind.dualAxis) {
+    const ca = ind.canada.latestValue, us = ind.us.latestValue;
+    const diff = (ca !== null && us !== null) ? Number(us) - Number(ca) : null;
+    const c = document.createElement('div');
+    c.className = 'card';
+    c.style.borderColor = 'rgba(129,140,248,0.3)';
+    c.innerHTML = '<div class="lbl" style="color:#818cf8">US − CA difference</div>' +
+      '<div class="val" style="color:#818cf8">' + fmt(diff) + '</div>' +
+      '<div class="sub">latest spread</div>';
+    cards.appendChild(c);
+  }
+
+  document.getElementById('t-src').innerHTML =
+    'Sources — Canada: ' + (ind.canada.source || 'n/a') +
+    '<br>United States: ' + (ind.us.source || 'n/a');
+
+  const compBtn = document.getElementById('toggle-components');
+  const showBtn = board === 'both' && !ind.dualAxis;
+  compBtn.style.display = showBtn ? 'inline-block' : 'none';
+  if (!showBtn) { showComponents = false; compBtn.classList.remove('active'); compBtn.textContent = 'Show components'; }
+
+  drawChart(ind);
+}
+
+function drawChart(ind) {
+  if (chart) chart.destroy();
+
+  let dates  = ind.dates;
+  let caVals = ind.canada.values.map(v => v === null ? null : Number(v));
+  let usVals = ind.us.values.map(v => v === null ? null : Number(v));
+
+  if (timeGran === 'yearly') {
+    const dc = decimateYearly(dates, caVals);
+    const du = decimateYearly(dates, usVals);
+    dates  = dc.dates;
+    caVals = dc.values;
+    usVals = du.values;
+  }
+
+  curDates = dates;
+
+  const gridColor = 'rgba(255,255,255,0.04)';
+  const scales = {
+    x: { ticks: { color: '#8892b0', maxTicksLimit: 14, autoSkip: true }, grid: { color: gridColor } }
+  };
+
+  const datasets = [];
+
+  if (board === 'both') {
+    const isStep = ind.chartType === 'stepped';
+    if (ind.dualAxis || showComponents) {
+      // Fill-between view: both lines with shaded gap area.
+      // dualAxis indicators are normalized to index 100 so both can share one axis.
+      const plotCA = ind.dualAxis ? normalizeToIndex(caVals) : caVals;
+      const plotUS = ind.dualAxis ? normalizeToIndex(usVals) : usVals;
+      datasets.push({
+        label: 'Canada',
+        data: plotCA,
+        borderColor: COL.ca,
+        backgroundColor: 'transparent',
+        borderWidth: 2,
+        pointRadius: 0,
+        pointHoverRadius: 4,
+        tension: 0.25,
+        spanGaps: true,
+        stepped: isStep ? 'before' : false,
+        fill: { target: '+1', above: 'rgba(239,68,68,0.22)', below: 'rgba(59,130,246,0.22)' },
+      });
+      datasets.push({
+        label: 'United States',
+        data: plotUS,
+        borderColor: COL.us,
+        backgroundColor: 'transparent',
+        borderWidth: 2,
+        pointRadius: 0,
+        pointHoverRadius: 4,
+        tension: 0.25,
+        spanGaps: true,
+        stepped: isStep ? 'before' : false,
+        fill: false,
+      });
+      scales.y = { ticks: { color: '#8892b0' }, grid: { color: gridColor },
+        title: { display: true, text: ind.dualAxis ? 'Index (first period = 100)' : (ind.unit || ''), color: '#8892b0' } };
+    } else {
+      // Default: single purple US − CA difference line
+      const diffVals = usVals.map((v, i) =>
+        v !== null && caVals[i] !== null ? v - caVals[i] : null
+      );
+      datasets.push({
+        label: 'US − CA',
+        data: diffVals,
+        borderColor: '#818cf8',
+        backgroundColor: '#818cf822',
+        borderWidth: 2,
+        pointRadius: 0,
+        pointHoverRadius: 4,
+        tension: 0.25,
+        spanGaps: true,
+        fill: false,
+        stepped: isStep ? 'before' : false,
+      });
+      scales.y = { ticks: { color: '#8892b0' }, grid: { color: gridColor },
+        title: { display: !!ind.unit, text: ind.unit, color: '#8892b0' } };
+    }
+  } else {
+    const showCA = board !== 'us';
+    const showUS = board !== 'ca';
+    if (showCA)
+      datasets.push(datasetFor(ind, caVals, COL.ca, ind.dualAxis ? 'yCA' : undefined));
+    if (showUS && usVals.some(v => v !== null && v !== undefined))
+      datasets.push(datasetFor(ind, usVals, COL.us, ind.dualAxis ? 'yUS' : undefined));
+    if (ind.dualAxis) {
+      if (showCA)
+        scales.yCA = { position: 'left', ticks: { color: COL.ca }, grid: { color: gridColor },
+          title: { display: true, text: 'Canada (' + (ind.canada.unit || '') + ')', color: COL.ca } };
+      if (showUS)
+        scales.yUS = { position: showCA ? 'right' : 'left', ticks: { color: COL.us },
+          grid: { color: gridColor, drawOnChartArea: !showCA },
+          title: { display: true, text: 'US (' + (ind.us.unit || '') + ')', color: COL.us } };
+    } else {
+      scales.y = { ticks: { color: '#8892b0' }, grid: { color: gridColor },
+        title: { display: !!ind.unit, text: ind.unit, color: '#8892b0' } };
+    }
+  }
+
+  chart = new Chart(document.getElementById('chart'), {
+    type: ind.chartType === 'bar' ? 'bar' : 'line',
+    data: { labels: dates, datasets },
+    options: {
+      responsive: true,
+      maintainAspectRatio: false,
+      interaction: { mode: 'index', intersect: false },
+      plugins: {
+        legend: { labels: { color: '#eef2ff', usePointStyle: true } },
+        tooltip: { backgroundColor: '#0d1526', borderColor: 'rgba(255,255,255,0.1)', borderWidth: 1 },
+        zoom: {
+          limits: { x: { min: 'original', max: 'original' } },
+          pan: { enabled: true, mode: 'x', modifierKey: 'shift' },
+          zoom: {
+            mode: 'x',
+            wheel: { enabled: true, speed: 0.1 },
+            drag: { enabled: true, backgroundColor: 'rgba(129,140,248,0.15)',
+                    borderColor: 'rgba(129,140,248,0.6)', borderWidth: 1 },
+            onZoomComplete: () => clearRangeActive()
+          }
+        }
+      },
+      scales
+    }
+  });
+  clearRangeActive();
+}
+
+function clearRangeActive() {
+  document.querySelectorAll('#range-grp button').forEach(b => b.classList.remove('active'));
+}
+
+function setRange(years, btn) {
+  if (!chart || !curDates.length) return;
+  clearRangeActive();
+  if (!years) {
+    if (chart.resetZoom) chart.resetZoom('none');
+    return;
+  }
+  if (btn) btn.classList.add('active');
+  const last = parseDate(curDates[curDates.length - 1]);
+  const cutoff = new Date(last);
+  cutoff.setUTCFullYear(cutoff.getUTCFullYear() - years);
+  let startIdx = curDates.findIndex(d => parseDate(d) >= cutoff);
+  if (startIdx < 0) startIdx = 0;
+  chart.zoomScale('x', { min: startIdx, max: curDates.length - 1 }, 'default');
+}
+
+document.getElementById('range-grp').addEventListener('click', e => {
+  const b = e.target.closest('button');
+  if (!b) return;
+  setRange(+b.dataset.years, b);
+});
+document.getElementById('reset-zoom').addEventListener('click', () => {
+  clearRangeActive();
+  if (chart && chart.resetZoom) chart.resetZoom('none');
+});
+document.getElementById('sel-board').addEventListener('change', e => {
+  board = e.target.value;
+  showComponents = false;
+  const btn = document.getElementById('toggle-components');
+  btn.style.display = board === 'both' ? 'inline-block' : 'none';
+  btn.classList.remove('active');
+  btn.textContent = 'Show components';
+  select(active);
+});
+
+document.getElementById('toggle-components').addEventListener('click', function() {
+  showComponents = !showComponents;
+  this.classList.toggle('active', showComponents);
+  this.textContent = showComponents ? 'Hide components' : 'Show components';
+  drawChart(DB.indicators[active]);
+});
+document.getElementById('sel-time').addEventListener('change', e => {
+  timeGran = e.target.value;
+  select(active);
+});
+document.getElementById('sel-variable').addEventListener('change', e => {
+  select(+e.target.value);
+});
+
+// ── Export (PNG · PDF · PPTX · XLSX) ──────────────────────────────────────────
+function slugify(s) {
+  return (s || 'chart').replace(/[^\w]+/g, '_').replace(/^_+|_+$/g, '').slice(0, 60) || 'chart';
+}
+function boardLabel() {
+  return board === 'both' ? 'US-Canada' : board === 'us' ? 'United States' : 'Canada';
+}
+function exportSubtitle(ind) {
+  const range = curDates.length ? (curDates[0] + ' \u2192 ' + curDates[curDates.length - 1]) : '';
+  return [boardLabel(), timeGran === 'yearly' ? 'Yearly' : 'Monthly', range].filter(Boolean).join('  \u00b7  ');
+}
+function exportSource(ind) {
+  const ca = ind.canada.source || 'n/a', us = ind.us.source || 'n/a';
+  return 'Sources \u2014 Canada: ' + ca + '   \u00b7   United States: ' + us;
+}
+function downloadDataURL(url, filename) {
+  const a = document.createElement('a');
+  a.href = url; a.download = filename;
+  document.body.appendChild(a); a.click(); a.remove();
+}
+function loadImage(src) {
+  return new Promise((res, rej) => { const im = new Image(); im.onload = () => res(im); im.onerror = rej; im.src = src; });
+}
+
+// Re-render the chart bitmap at higher pixel density, then restore.
+function captureChartDataURL(scale) {
+  const prev = chart.options.devicePixelRatio || window.devicePixelRatio || 1;
+  chart.options.devicePixelRatio = scale;
+  chart.resize();
+  const url = chart.toBase64Image('image/png', 1.0);
+  chart.options.devicePixelRatio = prev;
+  chart.resize();
+  return url;
+}
+
+// Composite the chart bitmap with a title + subtitle + source footer on the
+// dashboard's dark panel background. Returns { dataURL, w, h }.
+async function chartImage(opts) {
+  const o = opts || {};
+  const SCALE = o.scale || 2;
+  const bg = o.bg || '#0d1526';
+  const ind = DB.indicators[active];
+  const img = await loadImage(captureChartDataURL(SCALE));   // img is cssW*SCALE × cssH*SCALE
+  const pad = 28 * SCALE, headerH = 74 * SCALE, footerH = 40 * SCALE;
+  const W = img.width + pad * 2;
+  const H = img.height + headerH + footerH;
+  const c = document.createElement('canvas');
+  c.width = W; c.height = H;
+  const ctx = c.getContext('2d');
+  ctx.fillStyle = bg; ctx.fillRect(0, 0, W, H);
+  ctx.textBaseline = 'alphabetic';
+  const maxTextW = W - pad * 2;
+  const fitFont = (text, baseSize, weight, minSize) => {
+    let size = baseSize;
+    ctx.font = weight + ' ' + size + 'px Inter, -apple-system, sans-serif';
+    while (ctx.measureText(text).width > maxTextW && size > minSize) {
+      size -= 1; ctx.font = weight + ' ' + size + 'px Inter, -apple-system, sans-serif';
+    }
+  };
+  ctx.fillStyle = '#eef2ff';
+  fitFont(ind.name, 22 * SCALE, '600', 12 * SCALE);
+  ctx.fillText(ind.name, pad, 38 * SCALE);
+  ctx.fillStyle = '#8892b0';
+  fitFont(exportSubtitle(ind), 13 * SCALE, '400', 9 * SCALE);
+  ctx.fillText(exportSubtitle(ind), pad, 60 * SCALE);
+  ctx.drawImage(img, pad, headerH, img.width, img.height);
+  ctx.fillStyle = '#8892b0';
+  fitFont(exportSource(ind), 11 * SCALE, '400', 8 * SCALE);
+  ctx.fillText(exportSource(ind), pad, headerH + img.height + 26 * SCALE);
+  return { dataURL: c.toDataURL('image/png'), w: W, h: H };
+}
+
+// Data series matching the current chart view (applies yearly decimation).
+function currentSeries(ind) {
+  let dates = ind.dates;
+  let ca = ind.canada.values.map(v => v === null ? null : Number(v));
+  let us = ind.us.values.map(v => v === null ? null : Number(v));
+  if (timeGran === 'yearly') {
+    const dc = decimateYearly(dates, ca);
+    const du = decimateYearly(dates, us);
+    dates = dc.dates; ca = dc.values; us = du.values;
+  }
+  return { dates, ca, us };
+}
+
+async function exportPNG() {
+  const ind = DB.indicators[active];
+  const { dataURL } = await chartImage({});
+  downloadDataURL(dataURL, slugify(ind.name) + '.png');
+}
+
+async function exportPDF() {
+  const ind = DB.indicators[active];
+  const { dataURL, w, h } = await chartImage({});
+  const JsPDF = window.jspdf.jsPDF;
+  const pdf = new JsPDF({ orientation: w >= h ? 'landscape' : 'portrait', unit: 'pt', format: 'a4' });
+  const pw = pdf.internal.pageSize.getWidth(), ph = pdf.internal.pageSize.getHeight();
+  const margin = 24;
+  const ratio = Math.min((pw - margin * 2) / w, (ph - margin * 2) / h);
+  const dw = w * ratio, dh = h * ratio;
+  pdf.setFillColor(10, 15, 30);
+  pdf.rect(0, 0, pw, ph, 'F');
+  pdf.addImage(dataURL, 'PNG', (pw - dw) / 2, (ph - dh) / 2, dw, dh);
+  pdf.save(slugify(ind.name) + '.pdf');
+}
+
+async function exportPPTX() {
+  const ind = DB.indicators[active];
+  const { dataURL, w, h } = await chartImage({});
+  const pptx = new PptxGenJS();
+  pptx.defineLayout({ name: 'WIDE', width: 13.333, height: 7.5 });
+  pptx.layout = 'WIDE';
+  const slide = pptx.addSlide();
+  slide.background = { color: '0A0F1E' };
+  const slideW = 13.333, slideH = 7.5, m = 0.4;
+  const ratio = Math.min((slideW - m * 2) / w, (slideH - m * 2) / h);
+  const dw = w * ratio, dh = h * ratio;
+  slide.addImage({ data: dataURL, x: (slideW - dw) / 2, y: (slideH - dh) / 2, w: dw, h: dh });
+  await pptx.writeFile({ fileName: slugify(ind.name) + '.pptx' });
+}
+
+function exportXLSX() {
+  const ind = DB.indicators[active];
+  const { dates, ca, us } = currentSeries(ind);
+  const caUnit = ind.canada.unit || ind.unit || '';
+  const usUnit = ind.us.unit || ind.unit || '';
+  const aoa = [
+    ['Indicator', ind.name],
+    ['Board', boardLabel()],
+    ['Frequency', timeGran === 'yearly' ? 'yearly' : (ind.frequency || 'monthly')],
+    ['Canada unit', caUnit],
+    ['United States unit', usUnit],
+    ['Canada source', ind.canada.source || ''],
+    ['United States source', ind.us.source || ''],
+    ['Generated', DB.generated || ''],
+    [],
+    ['Date', 'Canada (' + caUnit + ')', 'United States (' + usUnit + ')', 'US \u2212 CA'],
+  ];
+  for (let i = 0; i < dates.length; i++) {
+    const c = ca[i], u = us[i];
+    const diff = (c != null && u != null) ? (u - c) : null;
+    aoa.push([dates[i], c, u, diff]);
+  }
+  const ws = XLSX.utils.aoa_to_sheet(aoa);
+  ws['!cols'] = [{ wch: 12 }, { wch: 22 }, { wch: 22 }, { wch: 14 }];
+  const wb = XLSX.utils.book_new();
+  const sheetName = ind.name.replace(/[\\\/\?\*\[\]:]/g, ' ').slice(0, 31);
+  XLSX.utils.book_append_sheet(wb, ws, sheetName);
+  XLSX.writeFile(wb, slugify(ind.name) + '.xlsx');
+}
+
+const exportBtn = document.getElementById('export-btn');
+const exportMenu = document.getElementById('export-menu');
+function closeExportMenu() { exportMenu.classList.remove('open'); exportBtn.classList.remove('open'); }
+function syncExportAvailability() {
+  const has = {
+    png: true,
+    pdf: !!(window.jspdf && window.jspdf.jsPDF),
+    pptx: typeof PptxGenJS !== 'undefined',
+    xlsx: typeof XLSX !== 'undefined',
+  };
+  exportMenu.querySelectorAll('button').forEach(b => {
+    const ok = has[b.dataset.fmt];
+    b.disabled = !ok;
+    b.title = ok ? '' : 'Export library not available';
+  });
+}
+exportBtn.addEventListener('click', e => {
+  e.stopPropagation();
+  const open = exportMenu.classList.toggle('open');
+  exportBtn.classList.toggle('open', open);
+});
+document.addEventListener('click', e => { if (!e.target.closest('.export-wrap')) closeExportMenu(); });
+document.addEventListener('keydown', e => { if (e.key === 'Escape') closeExportMenu(); });
+exportMenu.addEventListener('click', async e => {
+  const b = e.target.closest('button');
+  if (!b || b.disabled) return;
+  const fmt = b.dataset.fmt;
+  closeExportMenu();
+  const prevTxt = exportBtn.innerHTML;
+  exportBtn.innerHTML = 'Exporting\u2026';
+  try {
+    if (fmt === 'png') await exportPNG();
+    else if (fmt === 'pdf') await exportPDF();
+    else if (fmt === 'pptx') await exportPPTX();
+    else if (fmt === 'xlsx') exportXLSX();
+  } catch (err) {
+    console.error('Export failed:', err);
+    alert('Export failed: ' + (err && err.message ? err.message : err));
+  } finally {
+    exportBtn.innerHTML = prevTxt;
+  }
+});
+syncExportAvailability();
+
+function openDrawer() {
+  document.getElementById('drawer').classList.add('open');
+  document.getElementById('drawer-overlay').classList.add('open');
+  document.getElementById('hamburger-btn').classList.add('open');
+}
+function closeDrawer() {
+  document.getElementById('drawer').classList.remove('open');
+  document.getElementById('drawer-overlay').classList.remove('open');
+  document.getElementById('hamburger-btn').classList.remove('open');
+}
+document.getElementById('hamburger-btn').addEventListener('click', openDrawer);
+document.getElementById('drawer-close').addEventListener('click', closeDrawer);
+document.getElementById('drawer-overlay').addEventListener('click', closeDrawer);
+
+function buildDrawer() {
+  const list = document.getElementById('drawer-list');
+  DB.indicators.forEach(ind => {
+    const url = CONFLUENCE[ind.name] || '';
+    const a = document.createElement('a');
+    a.className = 'drawer-item' + (url ? '' : ' no-link');
+    a.href = url || '#';
+    if (url) { a.target = '_blank'; a.rel = 'noopener noreferrer'; }
+    else { a.addEventListener('click', e => e.preventDefault()); }
+    a.innerHTML =
+      '<div>' +
+        '<div class="di-name">' + ind.name + '</div>' +
+        '<div class="di-type">' + (ind.frequency || '') + (ind.unit ? ' &middot; ' + ind.unit : '') + '</div>' +
+      '</div>' +
+      '<span class="di-link">' + (url ? 'Open &rarr;' : 'No page yet') + '</span>';
+    list.appendChild(a);
+  });
+}
+
+function init(db) {
+  DB = db;
+  normalizeGFCF(db);
+  buildDrawer();
+  document.getElementById('foot').textContent =
+    'Source: ' + db.source + '  ·  generated ' + db.generated +
+    '  ·  ' + db.indicators.length + ' indicators';
+  buildDropdowns();
+  select(0);
+}
+
+if (window.MACRO_DATA) {
+  init(window.MACRO_DATA);
+} else {
+  fetch('data.json').then(r => r.json()).then(init).catch(() => {
+    document.querySelector('main').innerHTML =
+      '<p style="color:#ef4444">Could not load data. Re-run <code>python3 generate_data.py</code>, ' +
+      'or serve this folder over HTTP (see README).</p>';
+  });
+}
+
+// ── News Desk — live LLM agents backend ─────────────────────────────────────
+// Local dev talks to the localhost backend; the published site uses the hosted
+// service on Render. The token isn't a real secret (it's visible here) — it just
+// deters drive-by abuse and pairs with the backend's CORS lock + rate limit.
+const NEWS_IS_LOCAL = (location.hostname === 'localhost' || location.hostname === '127.0.0.1');
+const NEWS_API = NEWS_IS_LOCAL
+  ? 'http://' + location.hostname + ':8181'
+  : 'https://news-desk.onrender.com';
+const NEWS_TOKEN = 'eDRXt1fDpKSnJaYRkYsoVN5BtWBMLhGI';
+
+// In-memory cache for the session: { macro:{items}|{error}, gov:..., social:... }
+const newsCache = { macro: null, gov: null, social: null };
+const FEEDS = ['macro', 'gov', 'social'];
+
+function esc(s) {
+  return String(s == null ? '' : s)
+    .replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;');
+}
+function linkOpen(url) {
+  return url ? '<a href="' + esc(url) + '" target="_blank" rel="noopener noreferrer" style="color:inherit;text-decoration:none">' : '';
+}
+function linkClose(url) { return url ? '</a>' : ''; }
+function timeAgo(t) { return '<span class="time-ago">' + esc(t) + '</span>'; }
+
+// ── Topic classification (deterministic keyword rules, runs on cached data) ──
+// First matching topic in priority order wins. Honors a model-supplied `topic` if present.
+const TOPIC_RULES = [
+  ['inflation', 'Inflation', ['inflation', 'cpi', 'ppi', 'pce', 'disinflat', 'deflat', 'price index', 'cost of living']],
+  ['jobs',      'Jobs',      ['job', 'employ', 'unemploy', 'payroll', 'labour', 'labor market', 'jobless', 'hiring', 'wage', 'claims', 'layoff']],
+  ['housing',   'Housing',   ['housing', 'mortgage', 'home price', 'home sales', 'real estate', 'building permit', 'housing start', 'rent']],
+  ['trade',     'Trade',     ['tariff', 'trade', 'export', 'import', 'customs', 'trade deficit', 'trade surplus', 'usmca']],
+  ['rates',     'Rates',     ['rate cut', 'rate hike', 'interest rate', 'yield', 'bond', 'treasury', 'basis point', 'bps', 'policy rate', 'curve']],
+  ['fed',       'Fed',       ['federal reserve', 'fomc', 'powell', ' fed ', 'the fed']],
+  ['boc',       'BoC',       ['bank of canada', 'macklem', ' boc ']],
+  ['growth',    'Growth',    ['gdp', 'growth', 'recession', 'output', 'expansion', 'contraction', 'economic activity']],
+  ['markets',   'Markets',   ['stock', 'equit', 's&p', 'nasdaq', 'dow ', 'tsx', 'market', 'oil', 'crude', 'dollar', 'currency', 'loonie', ' fx', 'gold']],
+  ['consumer',  'Consumer',  ['retail', 'consumer', 'spending', 'sentiment', 'confidence']],
+];
+const TOPIC_LABEL = Object.fromEntries(TOPIC_RULES.map(r => [r[0], r[1]]));
+function itemText(d) {
+  return [d.headline, d.dek, d.text, d.sub, d.source, d.agency, d.handle, d.platform, d.val, d.region]
+    .filter(Boolean).join(' ').toLowerCase();
+}
+function classifyTopic(d) {
+  const modelTopic = String(d.topic || '').trim().toLowerCase();
+  if (modelTopic) {
+    const hit = TOPIC_RULES.find(r => r[0] === modelTopic || r[1].toLowerCase() === modelTopic);
+    if (hit) return hit[0];
+  }
+  const blob = ' ' + itemText(d) + ' ';
+  for (const [slug, , kws] of TOPIC_RULES) {
+    if (kws.some(k => blob.includes(k))) return slug;
+  }
+  return 'other';
+}
+function ensureTopic(d) { if (!d._topic) d._topic = classifyTopic(d); return d._topic; }
+function topicChipHtml(d) {
+  const slug = ensureTopic(d);
+  if (slug === 'other') return '';
+  return '<span class="topic-chip t-' + slug + '">' + esc(TOPIC_LABEL[slug] || slug) + '</span>';
+}
+
+function hostOf(url) {
+  try { return new URL(url).hostname.replace(/^www\./, ''); } catch (e) { return ''; }
+}
+function faviconHtml(url, letter, round) {
+  const h = hostOf(url);
+  const cls = 'fav' + (round ? ' round' : '');
+  const fb = '<span class="fav-letter">' + esc((letter || '?').charAt(0).toUpperCase()) + '</span>';
+  const img = h ? '<img src="https://www.google.com/s2/favicons?domain=' + esc(h) +
+    '&sz=64" alt="" loading="lazy" onerror="this.remove()">' : '';
+  return '<span class="' + cls + '">' + fb + img + '</span>';
+}
+function expandHint(text) {
+  if (!text || String(text).length < 90) return '';   // only offer expand when there's more to show
+  return '<div class="expand-hint"><span class="more">Click to expand &#9662;</span>' +
+    '<span class="less">Click to collapse &#9652;</span></div>';
+}
+
+// Active filter state (region + topic + keyword query)
+let newsRegion = 'all';
+let newsTopic = 'all';
+let newsQuery = '';
+const newsMeta = { macro: null, gov: null, social: null };
+
+function matchesQuery(d) {
+  if (!newsQuery) return true;
+  return (itemText(d) + ' ' + (TOPIC_LABEL[ensureTopic(d)] || '')).toLowerCase().includes(newsQuery);
+}
+function passFilters(d) {
+  if (newsRegion !== 'all' && d.region !== newsRegion) return false;
+  if (newsTopic !== 'all' && ensureTopic(d) !== newsTopic) return false;
+  return matchesQuery(d);
+}
+
+function setFeedStatus(category, html) {
+  document.getElementById(category + '-list').innerHTML = html;
+}
+function loadingHtml(label) {
+  return '<div class="feed-status">' +
+    '<span class="feed-spinner"></span>' + esc(label) + '</div>';
+}
+function errorHtml(msg) {
+  return '<div class="feed-status error">' + esc(msg) + '</div>';
+}
+
+function renderMacro(region) {
+  const state = newsCache.macro;
+  const countEl = document.getElementById('macro-count');
+  if (!state) { setFeedStatus('macro', loadingHtml('Researching macro headlines…')); countEl.textContent = '…'; return; }
+  if (state.error) { setFeedStatus('macro', errorHtml(state.error)); countEl.textContent = '!'; return; }
+  const items = (state.items || []).filter(passFilters);
+  countEl.textContent = items.length;
+  if (!items.length) { setFeedStatus('macro', errorHtml(newsQuery || newsTopic !== 'all' ? 'No matches.' : 'No items.')); return; }
+  document.getElementById('macro-list').innerHTML = items.map(d => {
+    return '<article class="macro-card news-card-clickable ' + (d.region === 'ca' ? 'ca' : 'us') + '">' +
+      faviconHtml(d.url, d.source || 'N') +
+      '<div class="body">' +
+        '<div class="headline">' + linkOpen(d.url) + esc(d.headline) + linkClose(d.url) + '</div>' +
+        (d.dek ? '<div class="dek clamp">' + esc(d.dek) + '</div>' : '') +
+        '<div class="meta">' +
+          topicChipHtml(d) +
+          '<span class="src-badge">' + esc(d.source || 'News') + '</span>' +
+          timeAgo(d.time) +
+        '</div>' +
+        expandHint(d.dek) +
+      '</div>' +
+    '</article>';
+  }).join('');
+}
+
+function renderGov(region) {
+  const state = newsCache.gov;
+  const countEl = document.getElementById('gov-count');
+  if (!state) { setFeedStatus('gov', loadingHtml('Checking US & Canada gov releases…')); countEl.textContent = '…'; return; }
+  if (state.error) { setFeedStatus('gov', errorHtml(state.error)); countEl.textContent = '!'; return; }
+  const arrow = { up:'\u25B2', down:'\u25BC', flat:'' };
+  const dcls  = { up:'delta-up', down:'delta-down', flat:'' };
+  const flagFor = (r) => r === 'ca' ? '\u{1F1E8}\u{1F1E6}' : '\u{1F1FA}\u{1F1F8}';
+  const items = (state.items || []).filter(passFilters);
+  countEl.textContent = items.length;
+  if (!items.length) { setFeedStatus('gov', errorHtml(newsQuery || newsTopic !== 'all' ? 'No matches.' : 'No items.')); return; }
+  document.getElementById('gov-list').innerHTML = items.map(d => {
+    const kind = (d.kind === 'policy') ? 'policy' : 'data';
+    const dir = ['up', 'down', 'flat'].includes(d.dir) ? d.dir : 'flat';
+    return '<div class="gov-row">' +
+      '<div class="gov-agency"><span class="flag">' + flagFor(d.region) + '</span>' + esc(d.agency || '') + '</div>' +
+      '<div class="gov-mid">' +
+        '<div class="gov-headline">' + linkOpen(d.url) + esc(d.headline) + linkClose(d.url) +
+          ' ' + topicChipHtml(d) +
+          ' <span class="pill ' + kind + '">' + kind + '</span></div>' +
+        '<div class="gov-sub">' + esc(d.sub || '') + (d.time ? ' &middot; ' + esc(d.time) : '') + '</div>' +
+      '</div>' +
+      (d.val ? '<div class="gov-val ' + dcls[dir] + '">' + arrow[dir] + ' ' + esc(d.val) +
+        (d.prev ? '<span class="prev">' + esc(d.prev) + '</span>' : '') + '</div>' : '<div></div>') +
+    '</div>';
+  }).join('');
+}
+
+function renderSocial(region) {
+  const state = newsCache.social;
+  const countEl = document.getElementById('social-count');
+  if (!state) { setFeedStatus('social', loadingHtml('Scanning social chatter…')); countEl.textContent = '…'; return; }
+  if (state.error) { setFeedStatus('social', errorHtml(state.error)); countEl.textContent = '!'; return; }
+  const items = (state.items || []).filter(passFilters);
+  countEl.textContent = items.length;
+  if (!items.length) { setFeedStatus('social', errorHtml(newsQuery || newsTopic !== 'all' ? 'No matches.' : 'No items.')); return; }
+  document.getElementById('social-list').innerHTML = items.map(d => {
+    const handle = String(d.handle || '?');
+    const initial = handle.replace('@', '').charAt(0).toUpperCase() || '?';
+    return '<div class="social-post news-card-clickable">' +
+      faviconHtml(d.url, initial, true) +
+      '<div class="social-body">' +
+        '<div class="social-meta">' +
+          '<span class="handle">' + esc(handle) + '</span>' +
+          '<span class="platform">&middot; ' + esc(d.platform || '') + (d.time ? ' &middot; ' + esc(d.time) : '') + '</span>' +
+          topicChipHtml(d) +
+        '</div>' +
+        '<div class="social-text clamp">' + esc(d.text || '') + '</div>' +
+        expandHint(d.text) +
+      '</div>' +
+      '<div class="social-actions">' +
+        (d.url ? '<a class="share-btn" href="' + esc(d.url) + '" target="_blank" rel="noopener noreferrer">Open</a>' : '') +
+      '</div>' +
+    '</div>';
+  }).join('');
+}
+
+const RENDERERS = { macro: renderMacro, gov: renderGov, social: renderSocial };
+function renderFeed(category) { RENDERERS[category](newsRegion); }
+
+// Build the clickable topic-filter bar from every loaded item (region + query aware,
+// but independent of the active topic so you can always switch topics).
+function allLoadedItems() {
+  const out = [];
+  for (const cat of FEEDS) {
+    const st = newsCache[cat];
+    if (st && st.items) out.push(...st.items);
+  }
+  return out;
+}
+function rebuildTopicBar() {
+  const bar = document.getElementById('news-topics');
+  if (!bar) return;
+  const counts = {};
+  let total = 0;
+  for (const d of allLoadedItems()) {
+    if (newsRegion !== 'all' && d.region !== newsRegion) continue;
+    if (!matchesQuery(d)) continue;
+    const slug = ensureTopic(d);
+    counts[slug] = (counts[slug] || 0) + 1;
+    total++;
+  }
+  if (!total) { bar.innerHTML = ''; return; }
+  // Order chips by the canonical topic order, then 'other' last; drop empties.
+  const order = TOPIC_RULES.map(r => r[0]).concat('other');
+  const chips = ['<button class="topic-filter' + (newsTopic === 'all' ? ' active' : '') +
+    '" data-topic="all">All<span class="tf-count">' + total + '</span></button>'];
+  for (const slug of order) {
+    if (!counts[slug]) continue;
+    const label = slug === 'other' ? 'Other' : (TOPIC_LABEL[slug] || slug);
+    chips.push('<button class="topic-filter' + (newsTopic === slug ? ' active' : '') +
+      '" data-topic="' + slug + '">' + esc(label) +
+      '<span class="tf-count">' + counts[slug] + '</span></button>');
+  }
+  bar.innerHTML = chips.join('');
+}
+
+// "Updated Xm ago" freshness indicator, from the backend's cached_at/age_seconds.
+function updateFreshness() {
+  const el = document.getElementById('news-fresh');
+  if (!el) return;
+  let best = null;  // smallest effective age across loaded feeds, in seconds
+  for (const cat of FEEDS) {
+    const m = newsMeta[cat];
+    if (!m) continue;
+    const eff = m.ageSeconds + Math.floor((Date.now() - m.at) / 1000);
+    if (best === null || eff < best) best = eff;
+  }
+  if (best === null) { el.textContent = ''; return; }
+  let txt;
+  if (best < 60) txt = 'just now';
+  else if (best < 3600) txt = Math.floor(best / 60) + 'm ago';
+  else if (best < 86400) txt = Math.floor(best / 3600) + 'h ago';
+  else txt = Math.floor(best / 86400) + 'd ago';
+  el.textContent = 'Updated ' + txt;
+}
+
+function renderNews() { FEEDS.forEach(renderFeed); rebuildTopicBar(); updateFreshness(); }
+
+async function fetchFeed(category) {
+  newsCache[category] = null;       // -> loading state
+  newsMeta[category] = null;
+  renderFeed(category);
+  const controller = new AbortController();
+  const timer = setTimeout(() => controller.abort(), 200000);
+  try {
+    const r = await fetch(NEWS_API + '/api/news/' + category, {
+      signal: controller.signal,
+      headers: { 'X-News-Token': NEWS_TOKEN },
+    });
+    const data = await r.json();
+    newsCache[category] = data.ok
+      ? { items: data.items || [] }
+      : { error: data.error || 'Agent error.' };
+    if (data.ok && typeof data.age_seconds === 'number') {
+      newsMeta[category] = { ageSeconds: data.age_seconds, at: Date.now() };
+    }
+  } catch (e) {
+    newsCache[category] = { error: 'News agents offline — start the backend: ./start_news_agents.command' };
+  } finally {
+    clearTimeout(timer);
+    renderFeed(category);
+    rebuildTopicBar();
+    updateFreshness();
+  }
+}
+
+function fetchAllFeeds() { FEEDS.forEach(fetchFeed); }   // fire the three agents in parallel
+
+function initNewsDesk() {
+  const btn = document.getElementById('news-btn');
+  const overlay = document.getElementById('news-overlay');
+  const closeBtn = document.getElementById('news-close');
+  const filter = document.getElementById('news-filter');
+  const refreshBtn = document.getElementById('news-refresh');
+  const searchInput = document.getElementById('news-search');
+  const topicsBar = document.getElementById('news-topics');
+  const body = document.querySelector('.news-body');
+  if (!btn || !overlay) return;
+  let hasFetched = false;
+
+  const open = () => {
+    overlay.classList.add('show');
+    btn.classList.add('open');
+    btn.querySelector('.unread')?.style.setProperty('display', 'none');
+    renderNews();
+    if (!hasFetched) { hasFetched = true; fetchAllFeeds(); }   // fire agents on first open
+  };
+  const close = () => {
+    overlay.classList.remove('show');
+    btn.classList.remove('open');
+  };
+
+  btn.addEventListener('click', () => overlay.classList.contains('show') ? close() : open());
+  closeBtn.addEventListener('click', close);
+  overlay.addEventListener('click', (e) => { if (e.target === overlay) close(); });
+  document.addEventListener('keydown', (e) => { if (e.key === 'Escape' && overlay.classList.contains('show')) close(); });
+
+  if (refreshBtn) refreshBtn.addEventListener('click', fetchAllFeeds);
+
+  filter.addEventListener('click', (e) => {
+    const b = e.target.closest('button[data-region]');
+    if (!b) return;
+    newsRegion = b.dataset.region;
+    filter.querySelectorAll('button').forEach(x => x.classList.toggle('active', x === b));
+    renderNews();
+  });
+
+  // Keyword search across all feeds.
+  if (searchInput) {
+    searchInput.addEventListener('input', () => {
+      newsQuery = searchInput.value.trim().toLowerCase();
+      renderNews();
+    });
+  }
+
+  // Clickable topic chips filter every feed by subject.
+  if (topicsBar) {
+    topicsBar.addEventListener('click', (e) => {
+      const b = e.target.closest('button[data-topic]');
+      if (!b) return;
+      newsTopic = b.dataset.topic;
+      renderNews();
+    });
+  }
+
+  // Click a card to expand/collapse its summary (ignore clicks on links/buttons).
+  if (body) {
+    body.addEventListener('click', (e) => {
+      if (e.target.closest('a, button')) return;
+      const card = e.target.closest('.news-card-clickable');
+      if (card) card.classList.toggle('expanded');
+    });
+  }
+
+  // Keep the "Updated Xm ago" label ticking while the modal is open.
+  setInterval(() => { if (overlay.classList.contains('show')) updateFreshness(); }, 30000);
+}
+
+if (document.readyState === 'loading') {
+  document.addEventListener('DOMContentLoaded', initNewsDesk);
+} else {
+  initNewsDesk();
+}
+</script>
+<!-- News Desk overlay -->
+<div class="news-overlay" id="news-overlay" role="dialog" aria-modal="true" aria-label="News Desk">
+  <div class="news-window">
+    <div class="news-titlebar">
+      <div class="news-title"><span class="news-live-dot"></span>News Desk</div>
+      <input id="news-search" class="news-search" type="search" placeholder="Search headlines, sources, topics…" autocomplete="off" aria-label="Search news">
+      <span class="news-fresh" id="news-fresh"></span>
+      <div class="news-filter" id="news-filter">
+        <button data-region="all" class="active">All</button>
+        <button data-region="us">US</button>
+        <button data-region="ca">CA</button>
+      </div>
+      <button class="news-close" id="news-refresh" aria-label="Refresh feeds" title="Re-run agents" style="font-size:15px">&#8635;</button>
+      <button class="news-close" id="news-close" aria-label="Close">&times;</button>
+    </div>
+    <div class="news-topics" id="news-topics"></div>
+    <div class="news-body">
+      <section class="feed macro">
+        <div class="feed-head">
+          <span class="feed-icon">&#128202;</span>
+          <h3>Macro News</h3>
+          <span class="feed-count" id="macro-count"></span>
+        </div>
+        <div class="feed-list" id="macro-list"></div>
+      </section>
+      <section class="feed gov">
+        <div class="feed-head">
+          <span class="feed-icon">&#127963;</span>
+          <h3>Government Updates</h3>
+          <span class="feed-count" id="gov-count"></span>
+        </div>
+        <div class="feed-list" id="gov-list"></div>
+      </section>
+      <section class="feed social">
+        <div class="feed-head">
+          <span class="feed-icon">&#128172;</span>
+          <h3>Social</h3>
+          <span class="feed-count" id="social-count"></span>
+        </div>
+        <div class="feed-list" id="social-list"></div>
+      </section>
+    </div>
+  </div>
+</div>
+
+</body>
+</html>

@@ -1,0 +1,887 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Bank of Canada — Business Outlook Survey Dashboard</title>
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Ctext y='.9em' font-size='90'%3E%F0%9F%8D%81%3C/text%3E%3C/svg%3E">
+<script src="chart.umd.min.js"></script>
+<script src="hammer.min.js"></script>
+<script src="chartjs-plugin-zoom.min.js"></script>
+<script src="data.js"></script>
+<style>
+  :root {
+    --bg:      #0a0f1e;
+    --panel:   #0d1526;
+    --panel2:  #111a30;
+    --line:    rgba(255,255,255,0.08);
+    --text:    #eef2ff;
+    --muted:   #8892b0;
+    --muted2:  #64708f;
+    --accent:  #ef4444;   /* Canada red */
+    --accent2: #38bdf8;
+    --chip:    rgba(255,255,255,0.06);
+    --radius:  14px;
+  }
+  * { box-sizing: border-box; }
+  html, body { margin: 0; height: 100%; }
+  body {
+    font-family: 'Inter', -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+    background:
+      radial-gradient(1200px 600px at 85% -10%, rgba(56,189,248,0.10), transparent 60%),
+      radial-gradient(900px 500px at -5% 0%, rgba(239,68,68,0.10), transparent 55%),
+      var(--bg);
+    color: var(--text);
+    min-height: 100%;
+  }
+
+  /* ── Header ── */
+  header {
+    display: flex; align-items: center; gap: 18px;
+    padding: 16px 28px; border-bottom: 1px solid var(--line);
+    background: rgba(13,21,38,0.72); backdrop-filter: blur(8px);
+    position: sticky; top: 0; z-index: 20;
+  }
+  .brand { display: flex; align-items: center; gap: 14px; min-width: 0; }
+  .flag {
+    width: 40px; height: 40px; border-radius: 10px; flex: none;
+    background: linear-gradient(135deg, #ef4444, #b91c1c);
+    display: grid; place-items: center; font-size: 22px; font-weight: 700;
+    box-shadow: 0 6px 18px rgba(239,68,68,0.28);
+  }
+  header h1 { font-size: 17px; margin: 0; font-weight: 700; letter-spacing: 0.2px; }
+  header .sub { font-size: 12px; color: var(--muted); margin-top: 2px; }
+  header .spacer { flex: 1; }
+  .hbtn {
+    border: 1px solid var(--line); background: var(--chip); color: var(--text);
+    padding: 8px 14px; border-radius: 10px; font-size: 13px; font-weight: 600;
+    cursor: pointer; font-family: inherit; transition: background .15s, border-color .15s;
+  }
+  .hbtn:hover { background: rgba(255,255,255,0.12); }
+  .hbtn.hidden { display: none; }
+
+  /* ── Filter popover ── */
+  .filter-wrap { position: relative; }
+  #filter-btn { display: inline-flex; align-items: center; gap: 6px; }
+  #filter-btn.on { border-color: rgba(239,68,68,0.55); color: #fff; }
+  .fbadge {
+    display: none; background: var(--accent); color: #fff; border-radius: 999px;
+    font-size: 10px; font-weight: 700; padding: 1px 6px; line-height: 1.4;
+  }
+  .fbadge.on { display: inline-block; }
+  .filter-pop {
+    position: absolute; right: 0; top: calc(100% + 8px); z-index: 40;
+    width: min(92vw, 560px); background: var(--panel2); border: 1px solid var(--line);
+    border-radius: 14px; padding: 14px 16px 16px; box-shadow: 0 22px 55px rgba(0,0,0,0.55);
+  }
+  .filter-pop[hidden] { display: none; }
+  .fhead { display: flex; justify-content: space-between; align-items: center; margin-bottom: 4px; }
+  .fhead h4 { margin: 0; font-size: 13px; font-weight: 700; }
+  .fgroup { margin-top: 13px; }
+  .fgroup .glabel {
+    font-size: 10.5px; text-transform: uppercase; letter-spacing: .06em; color: var(--muted2);
+    font-weight: 700; margin-bottom: 7px; display: flex; gap: 10px; align-items: center;
+  }
+  .fgroup .glabel .mini-link { text-transform: none; letter-spacing: 0; font-weight: 600; }
+  .fgroup .fchips { display: flex; flex-wrap: wrap; gap: 7px; }
+
+  main { padding: 22px 28px 60px; max-width: 1400px; margin: 0 auto; }
+  .view { display: none; }
+  .view.active { display: block; animation: fade .25s ease; }
+  @keyframes fade { from { opacity: 0; transform: translateY(6px);} to {opacity:1; transform:none;} }
+
+  .lead { color: var(--muted); font-size: 13.5px; margin: 2px 0 20px; line-height: 1.6; max-width: 900px; }
+  .lead b { color: var(--text); font-weight: 600; }
+
+  /* ── Overview cards ── */
+  .grid {
+    display: grid; gap: 16px;
+    grid-template-columns: repeat(auto-fill, minmax(320px, 1fr));
+  }
+  .card {
+    background: linear-gradient(180deg, var(--panel2), var(--panel));
+    border: 1px solid var(--line); border-radius: var(--radius);
+    padding: 14px 15px 10px; cursor: pointer; position: relative;
+    transition: transform .16s, border-color .16s, box-shadow .16s;
+  }
+  .card:hover { transform: translateY(-3px); border-color: rgba(56,189,248,0.45);
+    box-shadow: 0 14px 30px rgba(0,0,0,0.35); }
+  .card .top { display: flex; justify-content: space-between; align-items: flex-start; gap: 10px; }
+  .card h3 { font-size: 14px; margin: 0 0 2px; font-weight: 650; line-height: 1.3; }
+  .badge {
+    font-size: 10.5px; font-weight: 600; color: var(--muted); flex: none;
+    border: 1px solid var(--line); border-radius: 999px; padding: 3px 9px;
+    white-space: nowrap; background: rgba(255,255,255,0.03);
+  }
+  .card .meta { font-size: 11px; color: var(--muted2); margin: 2px 0 8px; }
+  .mini { position: relative; height: 108px; }
+  .card .cta {
+    position: absolute; right: 12px; bottom: 9px; font-size: 11px;
+    color: var(--accent2); opacity: 0; transition: opacity .16s; font-weight: 600;
+  }
+  .card:hover .cta { opacity: 1; }
+
+  /* ── Detail view ── */
+  .controls {
+    display: flex; flex-wrap: wrap; gap: 12px 18px; align-items: flex-end;
+    background: var(--panel); border: 1px solid var(--line);
+    border-radius: var(--radius); padding: 14px 16px; margin-bottom: 16px;
+  }
+  .field { display: flex; flex-direction: column; gap: 5px; }
+  .field label { font-size: 10.5px; text-transform: uppercase; letter-spacing: .06em; color: var(--muted2); font-weight: 600; }
+  select {
+    background: var(--panel2); color: var(--text); border: 1px solid var(--line);
+    border-radius: 9px; padding: 8px 30px 8px 11px; font-size: 13.5px; font-family: inherit;
+    font-weight: 550; cursor: pointer; appearance: none; min-width: 150px;
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 24 24' fill='none' stroke='%238892b0' stroke-width='2.5'%3E%3Cpath d='M6 9l6 6 6-6'/%3E%3C/svg%3E");
+    background-repeat: no-repeat; background-position: right 10px center;
+  }
+  select#f-indicator { min-width: 240px; }
+  .seg { display: inline-flex; border: 1px solid var(--line); border-radius: 9px; overflow: hidden; }
+  .seg button {
+    border: none; background: var(--panel2); color: var(--muted); padding: 8px 13px;
+    font-size: 13px; font-weight: 600; cursor: pointer; font-family: inherit;
+    border-right: 1px solid var(--line); transition: background .14s, color .14s;
+  }
+  .seg button:last-child { border-right: none; }
+  .seg button.active { background: var(--accent); color: #fff; }
+  .seg button:disabled { opacity: .35; cursor: not-allowed; }
+  .seg button:not(.active):not(:disabled):hover { background: rgba(255,255,255,0.08); color: var(--text); }
+  .grow { flex: 1; }
+  .tbtn {
+    border: 1px solid var(--line); background: var(--chip); color: var(--text);
+    padding: 8px 12px; border-radius: 9px; font-size: 12.5px; font-weight: 600;
+    cursor: pointer; font-family: inherit;
+  }
+  .tbtn:hover { background: rgba(255,255,255,0.12); }
+  .tbtn.active { background: var(--accent); border-color: var(--accent); color: #fff; }
+
+  .chart-wrap {
+    background: linear-gradient(180deg, var(--panel2), var(--panel));
+    border: 1px solid var(--line); border-radius: var(--radius); padding: 18px 18px 8px;
+  }
+  .chart-head { display: flex; justify-content: space-between; align-items: baseline; gap: 12px; flex-wrap: wrap; margin-bottom: 6px; }
+  .chart-head h2 { font-size: 18px; margin: 0; font-weight: 700; }
+  .chart-head .unit { font-size: 12px; color: var(--muted); font-weight: 600; }
+  .toolbar { display: flex; gap: 8px; flex-wrap: wrap; align-items: center; }
+  .toolbar .grp { display: inline-flex; gap: 6px; align-items: center; }
+  .sep { width: 1px; height: 22px; background: var(--line); margin: 0 4px; }
+  .chart-box { position: relative; height: 460px; margin-top: 6px; }
+
+  .chips { display: flex; flex-wrap: wrap; gap: 8px; margin: 14px 2px 4px; align-items: center; }
+  .chip {
+    display: inline-flex; align-items: center; gap: 7px; cursor: pointer; user-select: none;
+    border: 1px solid var(--line); background: var(--chip); border-radius: 999px;
+    padding: 5px 12px 5px 10px; font-size: 12.5px; font-weight: 600; transition: opacity .14s, background .14s;
+  }
+  .chip .dot { width: 11px; height: 11px; border-radius: 50%; flex: none; }
+  .chip.off { opacity: .38; }
+  .chip:hover { background: rgba(255,255,255,0.10); }
+  .chips .mini-link { font-size: 11.5px; color: var(--muted2); cursor: pointer; margin-left: 4px; }
+  .chips .mini-link:hover { color: var(--text); }
+
+  .foot {
+    margin-top: 16px; border-top: 1px solid var(--line); padding-top: 14px;
+    display: grid; grid-template-columns: 1fr; gap: 8px; font-size: 12.5px; color: var(--muted);
+    line-height: 1.55;
+  }
+  .foot .q { color: var(--text); }
+  .foot .src { font-size: 11.5px; color: var(--muted2); }
+  .pill { display:inline-block; font-size:11px; font-weight:600; color: var(--accent2);
+    border:1px solid rgba(56,189,248,0.35); border-radius:999px; padding:2px 9px; margin-right:8px;}
+
+  footer.page {
+    text-align: center; color: var(--muted2); font-size: 11.5px; padding: 24px 20px 40px;
+  }
+  @media (max-width: 640px) {
+    header { padding: 14px 16px; } main { padding: 16px 14px 48px; }
+    .chart-box { height: 360px; } select#f-indicator { min-width: 180px; }
+  }
+</style>
+</head>
+<body>
+<header>
+  <div class="brand">
+    <div class="flag">🍁</div>
+    <div style="min-width:0">
+      <h1>Business Outlook Survey — Dashboard</h1>
+      <div class="sub" id="hsub">Bank of Canada · quarterly</div>
+    </div>
+  </div>
+  <div class="spacer"></div>
+  <button class="hbtn hidden" id="back-btn">← Overview</button>
+</header>
+
+<main>
+  <!-- OVERVIEW -->
+  <section id="overview" class="view active">
+    <p class="lead" id="overview-lead"></p>
+    <div class="grid" id="cards"></div>
+  </section>
+
+  <!-- DETAIL -->
+  <section id="detail" class="view">
+    <div class="controls">
+      <div class="field">
+        <label for="f-indicator">Indicator</label>
+        <select id="f-indicator"></select>
+      </div>
+      <div class="field" id="sub-field">
+        <label for="f-sub">Subcomponent</label>
+        <select id="f-sub"></select>
+      </div>
+      <div class="field">
+        <label>Breakdown</label>
+        <div class="seg" id="bd-seg">
+          <button data-bd="sector">Sector</button>
+          <button data-bd="region">Region</button>
+          <button data-bd="size">Firm size</button>
+        </div>
+      </div>
+    </div>
+
+    <div class="chart-wrap">
+      <div class="chart-head">
+        <div>
+          <h2 id="d-title">—</h2>
+          <div class="unit" id="d-unit"></div>
+        </div>
+        <div class="toolbar">
+          <div class="filter-wrap">
+            <button class="tbtn" id="filter-btn">⚑ Filter<span class="fbadge" id="filter-badge"></span></button>
+            <div class="filter-pop" id="filter-pop" hidden></div>
+          </div>
+          <span class="sep"></span>
+          <div class="grp" id="range-grp">
+            <button class="tbtn" data-y="5">5Y</button>
+            <button class="tbtn" data-y="10">10Y</button>
+            <button class="tbtn active" data-y="0">All</button>
+          </div>
+          <span class="sep"></span>
+          <button class="tbtn" id="reset-zoom">Reset zoom</button>
+          <span class="sep"></span>
+          <button class="tbtn" id="exp-png">PNG</button>
+          <button class="tbtn" id="exp-csv">CSV</button>
+        </div>
+      </div>
+      <div class="chart-box"><canvas id="chart"></canvas></div>
+      <div class="chips" id="chips"></div>
+      <div class="foot">
+        <div><span class="q" id="d-question"></span></div>
+        <div class="src" id="d-source"></div>
+        <div class="src"><span class="pill">Note</span><span id="d-caveat"></span></div>
+      </div>
+    </div>
+  </section>
+</main>
+
+<footer class="page" id="page-foot"></footer>
+
+<script>
+(function () {
+  "use strict";
+  const DB = window.BOS_DATA;
+  if (window.ChartZoom) Chart.register(window.ChartZoom);
+  Chart.defaults.font.family = "'Inter', sans-serif";
+  Chart.defaults.color = "#8892b0";
+
+  const PALETTE = ["#f87171", "#60a5fa", "#34d399", "#fbbf24", "#c084fc", "#22d3ee", "#f472b6"];
+  const BD_LABEL = { sector: "Sector", region: "Region", size: "Firm size", country: "Country" };
+  const QUARTERS = DB.quarters;
+
+  // Canada-vs-U.S. sentiment "comparison" indicator (monthly, dual-axis).
+  const isComparison = ind => !!ind && ind.kind === "comparison";
+  const COMPARE_COLORS = { "Canada": "#f87171", "United States": "#60a5fa" };
+  const lastIdxOf = arrs => {
+    let idx = -1;
+    arrs.forEach(arr => {
+      for (let i = arr.length - 1; i >= 0; i--) { if (arr[i] != null) { if (i > idx) idx = i; break; } }
+    });
+    return idx;
+  };
+
+  const byId = id => DB.indicators.find(i => i.id === id);
+  const lastNonNull = series => {
+    let idx = -1;
+    Object.values(series).forEach(arr => {
+      for (let i = arr.length - 1; i >= 0; i--) { if (arr[i] != null) { if (i > idx) idx = i; break; } }
+    });
+    return idx;
+  };
+  const fmt = v => v == null ? "–" : (Math.round(v * 10) / 10).toLocaleString();
+
+  // ── persistent member filter (per dimension) ──────────────────────
+  // BoS indicators filter by sector / region / firm size; the Canada-vs-U.S.
+  // comparison card filters by country. The filter panel shows whichever
+  // dimensions apply to the indicator currently open (see activeDims()).
+  const DIMS = ["sector", "region", "size"];
+  const COUNTRY_MEMBERS = ["Canada", "United States"];
+  const ALL_DIMS = ["sector", "region", "size", "country"];
+  const membersOf = dim => dim === "country" ? COUNTRY_MEMBERS : DB.members[dim];
+  const colorFor = (dim, m) => PALETTE[Math.max(0, DB.members[dim].indexOf(m)) % PALETTE.length];
+  const colorOf = (dim, m) => dim === "country" ? (COMPARE_COLORS[m] || "#94a3b8") : colorFor(dim, m);
+  const FILTER = {
+    sector: new Set(DB.members.sector),
+    region: new Set(DB.members.region),
+    size: new Set(DB.members.size),
+    country: new Set(COUNTRY_MEMBERS),
+  };
+  const FKEY = "bos_filter_v1";
+  function loadFilter() {
+    try {
+      const saved = JSON.parse(localStorage.getItem(FKEY) || "null");
+      if (!saved) return;
+      ALL_DIMS.forEach(d => {
+        if (Array.isArray(saved[d])) {
+          const valid = saved[d].filter(m => membersOf(d).includes(m));
+          FILTER[d] = new Set(valid);
+        }
+      });
+    } catch (e) { /* ignore corrupt storage */ }
+  }
+  function saveFilter() {
+    try {
+      const obj = {};
+      ALL_DIMS.forEach(d => { obj[d] = [...FILTER[d]]; });
+      localStorage.setItem(FKEY, JSON.stringify(obj));
+    } catch (e) { /* storage may be unavailable under file:// */ }
+  }
+  // dimensions shown by the filter for the currently-open indicator
+  const activeDims = () => state.kind === "comparison" ? ["country"] : DIMS;
+  const hiddenTotal = () => activeDims().reduce((n, d) => n + (membersOf(d).length - FILTER[d].size), 0);
+  loadFilter();
+
+  // ── header + intro ────────────────────────────────────────────────
+  document.getElementById("hsub").textContent =
+    "Bank of Canada · quarterly (4-qtr moving avg) · " + DB.coverage;
+  const bosCount = DB.indicators.filter(i => !isComparison(i)).length;
+  document.getElementById("overview-lead").innerHTML =
+    "The <b>Business Outlook Survey</b> summarises interviews with senior management at Canadian firms. " +
+    "These panels break each result down <b>by sector, region and firm size</b> as four-quarter moving averages, " +
+    DB.coverage + ". Click any indicator to explore it. " +
+    "<b>" + bosCount + "</b> Canadian BoS indicators" +
+    (DB.indicators.some(isComparison)
+      ? " · plus a <b>Canada vs U.S.</b> small-business sentiment comparison." : ".");
+  document.getElementById("page-foot").innerHTML =
+    "Source: " + DB.source + " · generated " + DB.generated +
+    " · four-quarter moving averages, Canada.";
+  document.getElementById("d-caveat").textContent = DB.caveat;
+
+  // ── overview: small-multiple cards ────────────────────────────────
+  const cardsEl = document.getElementById("cards");
+  const miniInfos = [];
+  DB.indicators.forEach(ind => {
+    const card = document.createElement("div");
+    card.className = "card";
+    let info;
+    if (isComparison(ind)) {
+      const li = lastIdxOf(ind.series.map(s => s.values));
+      const latest = li >= 0 ? ind.dates[li] : ind.coverage.split(" – ")[1];
+      card.innerHTML =
+        '<div class="top"><h3>' + ind.name + '</h3>' +
+        '<span class="badge">' + ind.unit + '</span></div>' +
+        '<div class="meta">Canada vs U.S. · monthly · latest ' + latest + '</div>' +
+        '<div class="mini"><canvas></canvas></div>' +
+        '<div class="cta">Explore →</div>';
+      info = { canvas: card.querySelector("canvas"), ind, kind: "comparison", chart: null };
+    } else {
+      const sub0 = ind.subcomponents[0];
+      const dim = ind.defaultBreakdown;
+      const bd = sub0.breakdowns[dim];
+      const li = lastNonNull(bd.series);
+      const latestQ = li >= 0 ? QUARTERS[li] : DB.coverage.split(" – ")[1];
+      card.innerHTML =
+        '<div class="top"><h3>' + ind.name + '</h3>' +
+        '<span class="badge">' + ind.unit + '</span></div>' +
+        '<div class="meta">' + BD_LABEL[dim] +
+        (ind.subcomponents.length > 1 ? " · " + ind.subcomponents.length + " subcomponents" : "") +
+        " · latest " + latestQ + '</div>' +
+        '<div class="mini"><canvas></canvas></div>' +
+        '<div class="cta">Explore →</div>';
+      info = { canvas: card.querySelector("canvas"), bd, dim, kind: "bos", chart: null };
+    }
+    card.addEventListener("click", () => openDetail(ind.id));
+    cardsEl.appendChild(card);
+    miniInfos.push(info);
+    drawMini(info);
+  });
+
+  function drawMini(info) {
+    if (info.chart) info.chart.destroy();
+    if (info.kind === "comparison") { info.chart = makeMiniComparison(info); return; }
+    const { bd, dim } = info;
+    const datasets = bd.members
+      .filter(m => FILTER[dim].has(m))
+      .map(m => ({
+        data: bd.series[m], borderColor: colorFor(dim, m),
+        borderWidth: 1.5, pointRadius: 0, tension: 0.25, spanGaps: false,
+      }));
+    info.chart = new Chart(info.canvas, {
+      type: "line",
+      data: { labels: QUARTERS, datasets },
+      options: {
+        responsive: true, maintainAspectRatio: false, animation: false,
+        interaction: { mode: "nearest", intersect: false },
+        plugins: { legend: { display: false }, tooltip: { enabled: false } },
+        elements: { line: { borderJoinStyle: "round" } },
+        scales: { x: { display: false }, y: { display: false } },
+      },
+    });
+  }
+  function makeMiniComparison(info) {
+    const ind = info.ind;
+    const datasets = ind.series.filter(s => FILTER.country.has(s.key)).map(s => ({
+      data: s.values, borderColor: COMPARE_COLORS[s.key] || "#94a3b8",
+      borderWidth: 1.5, pointRadius: 0, tension: 0.25, spanGaps: false,
+      yAxisID: s.axis === "right" ? "yr" : "yl",
+    }));
+    return new Chart(info.canvas, {
+      type: "line",
+      data: { labels: ind.dates, datasets },
+      options: {
+        responsive: true, maintainAspectRatio: false, animation: false,
+        interaction: { mode: "nearest", intersect: false },
+        plugins: { legend: { display: false }, tooltip: { enabled: false } },
+        elements: { line: { borderJoinStyle: "round" } },
+        scales: { x: { display: false }, yl: { display: false }, yr: { display: false } },
+      },
+    });
+  }
+  function redrawMinis(dim) {
+    miniInfos.forEach(info => {
+      if (info.kind === "comparison") { if (!dim || dim === "country") drawMini(info); }
+      else if (!dim || info.dim === dim) drawMini(info);
+    });
+  }
+
+  // ── detail state ──────────────────────────────────────────────────
+  let chart = null;
+  const state = { indId: null, subIdx: 0, bd: "sector", kind: "bos" };
+  const overviewSection = document.getElementById("overview");
+  const detailSection = document.getElementById("detail");
+  let overviewDirty = false;
+
+  const selInd = document.getElementById("f-indicator");
+  const selSub = document.getElementById("f-sub");
+  const subField = document.getElementById("sub-field");
+  const bdSeg = document.getElementById("bd-seg");
+  const bdField = bdSeg.closest(".field");
+  const filterWrap = document.querySelector(".filter-wrap");
+  const noteRow = document.getElementById("d-caveat").parentElement;
+
+  DB.indicators.forEach(ind => {
+    const o = document.createElement("option");
+    o.value = ind.id; o.textContent = ind.name; selInd.appendChild(o);
+  });
+
+  selInd.addEventListener("change", () => { openDetail(selInd.value, true); });
+  selSub.addEventListener("change", () => {
+    state.subIdx = +selSub.value;
+    syncBreakdownButtons(); renderDetail();
+  });
+  bdSeg.querySelectorAll("button").forEach(b => {
+    b.addEventListener("click", () => {
+      if (b.disabled || b.classList.contains("active")) return;
+      state.bd = b.dataset.bd;
+      syncBreakdownButtons(); renderDetail();
+    });
+  });
+
+  function curSub() { return byId(state.indId).subcomponents[state.subIdx]; }
+
+  function syncBreakdownButtons() {
+    const sub = curSub();
+    bdSeg.querySelectorAll("button").forEach(b => {
+      const has = !!sub.breakdowns[b.dataset.bd];
+      b.disabled = !has;
+      b.classList.toggle("active", has && b.dataset.bd === state.bd);
+    });
+  }
+
+  function openDetail(indId, keepControls) {
+    const ind = byId(indId);
+    state.indId = indId;
+    state.kind = isComparison(ind) ? "comparison" : "bos";
+    selInd.value = indId;
+    // Filter panel + badge reflect the dimensions of the current indicator
+    // (Country for the comparison card; Sector/Region/Firm size for BoS).
+    buildFilterPanel();
+    updateFilterBadge();
+
+    if (state.kind === "comparison") {
+      subField.style.display = "none";
+      bdField.style.display = "none";
+      filterWrap.style.display = "";      // filter applies here too (by country)
+      noteRow.style.display = "none";
+      showView("detail");
+      renderComparison(ind);
+      return;
+    }
+
+    // BoS path — restore any controls the comparison view hides.
+    bdField.style.display = "";
+    filterWrap.style.display = "";
+    noteRow.style.display = "";
+    if (!keepControls) { state.subIdx = 0; }
+
+    // subcomponent dropdown
+    selSub.innerHTML = "";
+    ind.subcomponents.forEach((s, i) => {
+      const o = document.createElement("option");
+      o.value = i; o.textContent = s.name || "Main"; selSub.appendChild(o);
+    });
+    subField.style.display = ind.subcomponents.length > 1 ? "flex" : "none";
+    if (state.subIdx >= ind.subcomponents.length) state.subIdx = 0;
+    selSub.value = state.subIdx;
+
+    // choose a valid breakdown
+    const sub = ind.subcomponents[state.subIdx];
+    if (!sub.breakdowns[state.bd]) {
+      state.bd = ind.defaultBreakdown in sub.breakdowns ? ind.defaultBreakdown
+        : Object.keys(sub.breakdowns)[0];
+    }
+    syncBreakdownButtons();
+    showView("detail");
+    renderDetail();
+  }
+
+  function renderDetail() {
+    const ind = byId(state.indId);
+    const sub = curSub();
+    const bd = sub.breakdowns[state.bd];
+
+    document.getElementById("d-title").textContent =
+      ind.name + (sub.name ? " — " + sub.name : "");
+    document.getElementById("d-unit").textContent =
+      "Units: " + ind.unit + "  ·  " + BD_LABEL[state.bd] + "  ·  four-quarter moving average";
+    document.getElementById("d-question").innerHTML =
+      sub.definition ? '<b>Survey question:</b> ' + sub.definition : "";
+    document.getElementById("d-source").textContent =
+      "Source: " + DB.source + "  ·  coverage " + DB.coverage;
+
+    const datasets = bd.members.map(m => ({
+      label: m, data: bd.series[m],
+      borderColor: colorFor(state.bd, m),
+      backgroundColor: colorFor(state.bd, m) + "22",
+      borderWidth: 2, pointRadius: 0, pointHoverRadius: 4,
+      tension: 0.25, spanGaps: false, hidden: !FILTER[state.bd].has(m),
+    }));
+
+    const isBalance = /balance/i.test(ind.unit);
+    const isShare = /% of firms/i.test(ind.unit);
+    const scales = {
+      x: { grid: { color: "rgba(255,255,255,0.04)" }, ticks: { maxTicksLimit: 14, autoSkip: true, color: "#64708f" } },
+      y: {
+        grid: { color: ctx => ctx.tick && ctx.tick.value === 0 ? "rgba(255,255,255,0.30)" : "rgba(255,255,255,0.06)" },
+        ticks: { color: "#8892b0" },
+        beginAtZero: isShare, suggestedMin: isBalance ? undefined : (isShare ? 0 : undefined),
+      },
+    };
+
+    if (chart) chart.destroy();
+    chart = new Chart(document.getElementById("chart"), {
+      type: "line",
+      data: { labels: QUARTERS, datasets },
+      options: {
+        responsive: true, maintainAspectRatio: false,
+        interaction: { mode: "index", intersect: false },
+        plugins: {
+          legend: { display: false },
+          tooltip: {
+            backgroundColor: "#0d1526", borderColor: "rgba(255,255,255,0.12)", borderWidth: 1,
+            padding: 10, titleColor: "#eef2ff", bodyColor: "#c8d2f0",
+            callbacks: { label: c => "  " + c.dataset.label + ": " + fmt(c.parsed.y) },
+            itemSort: (a, b) => b.parsed.y - a.parsed.y,
+          },
+          zoom: {
+            limits: { x: { min: "original", max: "original" } },
+            pan: { enabled: true, mode: "x", modifierKey: "shift" },
+            zoom: {
+              mode: "x", wheel: { enabled: true, speed: 0.08 },
+              drag: { enabled: true, backgroundColor: "rgba(56,189,248,0.15)",
+                      borderColor: "rgba(56,189,248,0.6)", borderWidth: 1 },
+              onZoomComplete: clearRangeActive,
+            },
+          },
+        },
+        scales,
+      },
+    });
+
+    buildChips(bd);
+    applyRange(currentYears);
+  }
+
+  // ── comparison detail (Canada vs U.S., dual-axis) ─────────────────
+  function renderComparison(ind) {
+    document.getElementById("d-title").textContent = ind.name;
+    document.getElementById("d-unit").textContent =
+      "Canada: " + ind.series[0].unit + " (left axis)  ·  United States: " +
+      ind.series[1].unit + " (right axis)  ·  monthly";
+    document.getElementById("d-question").innerHTML =
+      ind.definition ? '<b>About:</b> ' + ind.definition : "";
+    document.getElementById("d-source").textContent =
+      "Source: " + ind.source + "  ·  coverage " + ind.coverage;
+
+    const datasets = ind.series.map(s => ({
+      label: s.label, data: s.values,
+      borderColor: COMPARE_COLORS[s.key] || "#94a3b8",
+      backgroundColor: (COMPARE_COLORS[s.key] || "#94a3b8") + "22",
+      borderWidth: 2, pointRadius: 0, pointHoverRadius: 4,
+      tension: 0.25, spanGaps: false,
+      yAxisID: s.axis === "right" ? "yr" : "yl",
+      hidden: !FILTER.country.has(s.key),
+    }));
+    const caCol = COMPARE_COLORS["Canada"], usCol = COMPARE_COLORS["United States"];
+    const scales = {
+      x: { grid: { color: "rgba(255,255,255,0.04)" }, ticks: { maxTicksLimit: 14, autoSkip: true, color: "#64708f" } },
+      yl: {
+        position: "left", display: FILTER.country.has("Canada"),
+        grid: { color: "rgba(255,255,255,0.06)" },
+        ticks: { color: caCol },
+        title: { display: true, text: ind.series[0].unit, color: caCol },
+      },
+      yr: {
+        position: "right", display: FILTER.country.has("United States"),
+        grid: { drawOnChartArea: false },
+        ticks: { color: usCol },
+        title: { display: true, text: ind.series[1].unit, color: usCol },
+      },
+    };
+
+    if (chart) chart.destroy();
+    chart = new Chart(document.getElementById("chart"), {
+      type: "line",
+      data: { labels: ind.dates, datasets },
+      options: {
+        responsive: true, maintainAspectRatio: false,
+        interaction: { mode: "index", intersect: false },
+        plugins: {
+          legend: { display: false },
+          tooltip: {
+            backgroundColor: "#0d1526", borderColor: "rgba(255,255,255,0.12)", borderWidth: 1,
+            padding: 10, titleColor: "#eef2ff", bodyColor: "#c8d2f0",
+            callbacks: { label: c => "  " + c.dataset.label + ": " + fmt(c.parsed.y) },
+          },
+          zoom: {
+            limits: { x: { min: "original", max: "original" } },
+            pan: { enabled: true, mode: "x", modifierKey: "shift" },
+            zoom: {
+              mode: "x", wheel: { enabled: true, speed: 0.08 },
+              drag: { enabled: true, backgroundColor: "rgba(56,189,248,0.15)",
+                      borderColor: "rgba(56,189,248,0.6)", borderWidth: 1 },
+              onZoomComplete: clearRangeActive,
+            },
+          },
+        },
+        scales,
+      },
+    });
+
+    buildComparisonChips(ind);
+    applyRange(currentYears);
+  }
+
+  function buildComparisonChips(ind) {
+    const el = document.getElementById("chips");
+    el.innerHTML = "";
+    ind.series.forEach(s => {
+      const col = COMPARE_COLORS[s.key] || "#94a3b8";
+      const chip = document.createElement("span");
+      chip.className = "chip" + (FILTER.country.has(s.key) ? "" : " off");
+      chip.innerHTML = '<span class="dot" style="background:' + col + '"></span>' + s.label;
+      chip.addEventListener("click", () => toggleMember("country", s.key));
+      el.appendChild(chip);
+    });
+  }
+
+  // ── member chips (drive the shared filter) ────────────────────────
+  function buildChips(bd) {
+    const el = document.getElementById("chips");
+    el.innerHTML = "";
+    const dim = state.bd;
+    bd.members.forEach(m => {
+      const chip = document.createElement("span");
+      chip.className = "chip" + (FILTER[dim].has(m) ? "" : " off");
+      chip.innerHTML = '<span class="dot" style="background:' + colorFor(dim, m) + '"></span>' + m;
+      chip.addEventListener("click", () => toggleMember(dim, m));
+      el.appendChild(chip);
+    });
+    const all = document.createElement("span");
+    all.className = "mini-link"; all.textContent = "Show all";
+    all.onclick = () => setAll(dim, true);
+    const none = document.createElement("span");
+    none.className = "mini-link"; none.textContent = "Hide all";
+    none.onclick = () => setAll(dim, false);
+    el.appendChild(all); el.appendChild(none);
+  }
+
+  // ── filter: shared toggles, header panel, sync ────────────────────
+  function toggleMember(dim, m) {
+    if (FILTER[dim].has(m)) FILTER[dim].delete(m); else FILTER[dim].add(m);
+    onFilterChanged(dim);
+  }
+  function setAll(dim, on) {
+    FILTER[dim] = on ? new Set(membersOf(dim)) : new Set();
+    onFilterChanged(dim);
+  }
+  function resetAllFilters() {
+    activeDims().forEach(d => { FILTER[d] = new Set(membersOf(d)); });
+    onFilterChanged(null);
+  }
+  function onFilterChanged(dim) {
+    saveFilter();
+    syncFilterPanel();
+    updateFilterBadge();
+    refreshDetailForFilter();
+    if (overviewSection.classList.contains("active")) redrawMinis(dim);
+    else overviewDirty = true;
+  }
+  function refreshDetailForFilter() {
+    if (!state.indId || !detailSection.classList.contains("active") || !chart) return;
+    if (state.kind === "comparison") {
+      const ind = byId(state.indId);
+      ind.series.forEach((s, i) => chart.setDatasetVisibility(i, FILTER.country.has(s.key)));
+      chart.options.scales.yl.display = FILTER.country.has("Canada");
+      chart.options.scales.yr.display = FILTER.country.has("United States");
+      chart.update();
+      buildComparisonChips(ind);
+      return;
+    }
+    const bd = curSub().breakdowns[state.bd];
+    bd.members.forEach((m, i) => chart.setDatasetVisibility(i, FILTER[state.bd].has(m)));
+    chart.update();
+    buildChips(bd);
+  }
+  function updateFilterBadge() {
+    const n = hiddenTotal();
+    document.getElementById("filter-badge").textContent = n;
+    document.getElementById("filter-badge").classList.toggle("on", n > 0);
+    document.getElementById("filter-btn").classList.toggle("on", n > 0);
+  }
+
+  const filterPop = document.getElementById("filter-pop");
+  const filterBtn = document.getElementById("filter-btn");
+  function buildFilterPanel() {
+    filterPop.innerHTML =
+      '<div class="fhead"><h4>Filter series shown in the graphs</h4>' +
+      '<span class="mini-link" id="f-reset">Reset all</span></div>';
+    activeDims().forEach(dim => {
+      const g = document.createElement("div");
+      g.className = "fgroup";
+      const lab = document.createElement("div");
+      lab.className = "glabel";
+      lab.innerHTML = BD_LABEL[dim] +
+        ' <span class="mini-link" data-all="' + dim + '">All</span>' +
+        '<span class="mini-link" data-none="' + dim + '">None</span>';
+      const chips = document.createElement("div");
+      chips.className = "fchips";
+      membersOf(dim).forEach(m => {
+        const chip = document.createElement("span");
+        chip.className = "chip" + (FILTER[dim].has(m) ? "" : " off");
+        chip.dataset.dim = dim; chip.dataset.m = m;
+        chip.innerHTML = '<span class="dot" style="background:' + colorOf(dim, m) + '"></span>' + m;
+        chip.addEventListener("click", () => toggleMember(dim, m));
+        chips.appendChild(chip);
+      });
+      g.appendChild(lab); g.appendChild(chips);
+      filterPop.appendChild(g);
+    });
+    filterPop.querySelector("#f-reset").onclick = resetAllFilters;
+    filterPop.querySelectorAll("[data-all]").forEach(a => { a.onclick = () => setAll(a.dataset.all, true); });
+    filterPop.querySelectorAll("[data-none]").forEach(a => { a.onclick = () => setAll(a.dataset.none, false); });
+  }
+  function syncFilterPanel() {
+    filterPop.querySelectorAll(".fchips .chip").forEach(chip => {
+      chip.classList.toggle("off", !FILTER[chip.dataset.dim].has(chip.dataset.m));
+    });
+  }
+  filterBtn.addEventListener("click", e => {
+    e.stopPropagation();
+    if (filterPop.hidden) buildFilterPanel();   // reflect the current indicator's dimensions
+    filterPop.hidden = !filterPop.hidden;
+  });
+  document.addEventListener("click", e => {
+    if (!filterPop.hidden && !filterPop.contains(e.target) && !filterBtn.contains(e.target))
+      filterPop.hidden = true;
+  });
+  document.addEventListener("keydown", e => { if (e.key === "Escape") filterPop.hidden = true; });
+  buildFilterPanel();
+  updateFilterBadge();
+
+  // ── date-range quick buttons ──────────────────────────────────────
+  let currentYears = 0;
+  const rangeGrp = document.getElementById("range-grp");
+  rangeGrp.querySelectorAll("button").forEach(b => {
+    b.addEventListener("click", () => {
+      clearRangeActive(); b.classList.add("active");
+      currentYears = +b.dataset.y; applyRange(currentYears);
+    });
+  });
+  function clearRangeActive() { rangeGrp.querySelectorAll("button").forEach(b => b.classList.remove("active")); }
+  function applyRange(years) {
+    if (!chart) return;
+    // Clear any active drag/wheel zoom FIRST — resetZoom restores the axis to
+    // its original bounds, so it must run before we apply the quick-range window
+    // (otherwise it wipes the min/max we set and the range button does nothing).
+    if (chart.resetZoom) chart.resetZoom("none");
+    if (!years) {
+      chart.options.scales.x.min = undefined;
+      chart.options.scales.x.max = undefined;
+    } else {
+      const end = chart.data.labels.length - 1;
+      const perYear = state.kind === "comparison" ? 12 : 4;
+      chart.options.scales.x.min = Math.max(0, end - years * perYear);
+      chart.options.scales.x.max = end;
+    }
+    chart.update();
+  }
+  document.getElementById("reset-zoom").addEventListener("click", () => {
+    clearRangeActive();
+    rangeGrp.querySelector('[data-y="0"]').classList.add("active");
+    currentYears = 0; applyRange(0);
+  });
+
+  // ── exports ───────────────────────────────────────────────────────
+  document.getElementById("exp-png").addEventListener("click", () => {
+    const a = document.createElement("a");
+    a.href = chart.toBase64Image("image/png", 1.0);
+    a.download = "BOS_" + state.indId + (state.kind === "comparison" ? "" : "_" + state.bd) + ".png";
+    a.click();
+  });
+  document.getElementById("exp-csv").addEventListener("click", () => {
+    let rows;
+    if (state.kind === "comparison") {
+      const ind = byId(state.indId);
+      rows = [["Month"].concat(ind.series.map(s => s.label)).join(",")];
+      ind.dates.forEach((dt, r) => {
+        rows.push([dt].concat(ind.series.map(s => s.values[r] == null ? "" : s.values[r])).join(","));
+      });
+    } else {
+      const bd = curSub().breakdowns[state.bd];
+      rows = [["Quarter"].concat(bd.members).join(",")];
+      QUARTERS.forEach((q, r) => {
+        rows.push([q].concat(bd.members.map(m => bd.series[m][r] == null ? "" : bd.series[m][r])).join(","));
+      });
+    }
+    const blob = new Blob([rows.join("\n")], { type: "text/csv" });
+    const a = document.createElement("a");
+    a.href = URL.createObjectURL(blob);
+    a.download = "BOS_" + state.indId + (state.kind === "comparison" ? "" : "_" + state.bd) + ".csv";
+    a.click(); URL.revokeObjectURL(a.href);
+  });
+
+  // ── view switching ────────────────────────────────────────────────
+  const backBtn = document.getElementById("back-btn");
+  function showView(name) {
+    overviewSection.classList.toggle("active", name === "overview");
+    detailSection.classList.toggle("active", name === "detail");
+    backBtn.classList.toggle("hidden", name !== "detail");
+    if (name === "overview" && overviewDirty) { redrawMinis(); overviewDirty = false; }
+    window.scrollTo({ top: 0, behavior: "smooth" });
+  }
+  backBtn.addEventListener("click", () => showView("overview"));
+})();
+</script>
+</body>
+</html>

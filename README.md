@@ -1,12 +1,22 @@
 # US &amp; Canada Macro Indicators — Dashboard App
 
-A self-contained, tabbed dashboard generated from `US_Canada_Macro_Indicators.xlsx`.
-Each tab shows one macro indicator with a chart comparing **Canada** vs **United States**.
+A self-contained dashboard with three top-level tabs — **📊 Macro Indicators**, **🏠 Housing
+Prices**, and **🏢 Business Outlook** — switchable from the header (or keys `1` / `2` / `3`, or the
+`#macro` / `#housing` / `#bos` deep links). Each tab is a full dashboard hosted in its own iframe so
+they keep 100% of their features without colliding:
+
+- **Macro Indicators** (`macro.html`) — the original app: one macro indicator per view, comparing
+  **Canada** vs **United States**, generated from `US_Canada_Macro_Indicators.xlsx`.
+- **Housing Prices** (`housing/`) — Canada's three house-price index families (Teranet–NB, CREA MLS
+  HPI, StatCan assessment), with Overview, Explore, Compare and Map.
+- **Business Outlook** (`bos/`) — the Bank of Canada Business Outlook Survey (14 indicators by
+  sector / region / firm size, plus a Canada-vs-U.S. sentiment comparison).
 
 ## Run it
 
-**Easiest:** just **double-click `index.html`** — it opens in your browser and works directly
-(data is embedded in `data.js`). You can also double-click `start.command` to serve it over HTTP.
+**Easiest:** just **double-click `index.html`** (or `open.command`) — it opens the tabbed shell in
+your browser and works directly from `file://` (all data is bundled). You can also double-click
+`start.command` to serve it over HTTP.
 
 **Or from a terminal:**
 
@@ -138,7 +148,11 @@ gcloud run deploy news-desk --source . --region us-central1 --allow-unauthentica
 
 ## Files
 
-- `index.html` — the dashboard app (uses bundled `chart.umd.min.js`).
+- `index.html` — the **tabbed shell** (Macro Indicators · Housing Prices · Business Outlook); loads the three apps in iframes.
+- `macro.html` — the macro indicators app (previously `index.html`; uses bundled `chart.umd.min.js`).
+- `housing/`, `bos/` — self-contained copies of the Housing and Business Outlook dashboards.
+- `open.command` — opens `index.html` via `file://`.
+- `sync.command` — re-copies `housing/` and `bos/` from `~/housing-dashboard` and `~/bos-dashboard` (run after rebuilding either source's data).
 - `chart.umd.min.js` — Chart.js library (bundled so the app works offline).
 - `chartjs-plugin-zoom.min.js`, `hammer.min.js` — zoom/pan support (bundled, offline).
 - `data.js` — data embedded as JS so the page works when opened directly (file://).
