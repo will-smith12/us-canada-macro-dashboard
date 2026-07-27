@@ -1,5 +1,5 @@
 {
-  "generated": "2026-07-07",
+  "generated": "2026-07-27",
   "source": "Trading Economics, FRED, Bank of Canada, StatCan (weekly refresh)",
   "indicators": [
     {
@@ -771,7 +771,8 @@
         "2026-02",
         "2026-03",
         "2026-04",
-        "2026-05"
+        "2026-05",
+        "2026-06"
       ],
       "canada": {
         "values": [
@@ -1091,12 +1092,13 @@
           1.7791,
           2.3853,
           2.8152,
-          3.2258
+          3.2258,
+          2.7981
         ],
         "unit": "percent",
         "source": "Statistics Canada",
-        "latestValue": 3.2258,
-        "latestDate": "2026-05"
+        "latestValue": 2.7981,
+        "latestDate": "2026-06"
       },
       "us": {
         "values": [
@@ -1416,12 +1418,13 @@
           2.434,
           3.28596,
           3.77925,
-          4.16661
+          4.16661,
+          3.46353
         ],
         "unit": "percent",
         "source": "U.S. Bureau of Labor Statistics",
-        "latestValue": 4.16661,
-        "latestDate": "2026-05"
+        "latestValue": 3.46353,
+        "latestDate": "2026-06"
       }
     },
     {
@@ -4180,11 +4183,11 @@
           6.7,
           6.9,
           6.6,
-          6.6
+          6.5
         ],
         "unit": "percent",
         "source": "Statistics Canada",
-        "latestValue": 6.6,
+        "latestValue": 6.5,
         "latestDate": "2026-06"
       },
       "us": {
@@ -4839,7 +4842,8 @@
         "2026-03",
         "2026-04",
         "2026-05",
-        "2026-06"
+        "2026-06",
+        "2026-07"
       ],
       "canada": {
         "values": [
@@ -5160,12 +5164,13 @@
           55.7,
           58,
           46.3,
-          49.6
+          50.1,
+          58.3
         ],
         "unit": "Index (0\u2013100)",
         "source": "CFIB Business Barometer (via Trading Economics)",
-        "latestValue": 49.6,
-        "latestDate": "2026-06"
+        "latestValue": 58.3,
+        "latestDate": "2026-07"
       },
       "us": {
         "values": [
@@ -5486,12 +5491,13 @@
           95.8,
           95.9,
           95.3,
+          97.4,
           null
         ],
         "unit": "Index (1986=100)",
         "source": "NFIB Small Business Optimism Index (via Trading Economics)",
-        "latestValue": 95.3,
-        "latestDate": "2026-05"
+        "latestValue": 97.4,
+        "latestDate": "2026-06"
       }
     }
   ]
