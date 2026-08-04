@@ -1,5 +1,5 @@
 {
-  "generated": "2026-07-27",
+  "generated": "2026-08-04",
   "source": "Trading Economics, FRED, Bank of Canada, StatCan (weekly refresh)",
   "indicators": [
     {
@@ -114,7 +114,8 @@
         "2025-06",
         "2025-09",
         "2025-12",
-        "2026-03"
+        "2026-03",
+        "2026-06"
       ],
       "canada": {
         "values": [
@@ -222,12 +223,13 @@
           -0.2,
           0.5,
           -0.2,
+          0,
           0
         ],
         "unit": "percent",
         "source": "Statistics Canada",
         "latestValue": 0,
-        "latestDate": "2026-03"
+        "latestDate": "2026-06"
       },
       "us": {
         "values": [
@@ -335,12 +337,13 @@
           3.8,
           4.4,
           0.5,
-          2.1
+          2.1,
+          1.5
         ],
         "unit": "percent",
         "source": "U.S. Bureau of Economic Analysis",
-        "latestValue": 2.1,
-        "latestDate": "2026-03"
+        "latestValue": 1.5,
+        "latestDate": "2026-06"
       }
     },
     {
@@ -1753,7 +1756,8 @@
         "2026-04",
         "2026-05",
         "2026-06",
-        "2026-07"
+        "2026-07",
+        "2026-08"
       ],
       "canada": {
         "values": [
@@ -2075,12 +2079,13 @@
           2.25,
           2.25,
           2.25,
+          2.25,
           2.25
         ],
         "unit": "percent",
         "source": "Bank of Canada",
         "latestValue": 2.25,
-        "latestDate": "2026-07"
+        "latestDate": "2026-08"
       },
       "us": {
         "values": [
@@ -2402,12 +2407,13 @@
           3.75,
           3.75,
           3.75,
+          3.75,
           3.75
         ],
         "unit": "percent",
         "source": "Federal Reserve",
         "latestValue": 3.75,
-        "latestDate": "2026-07"
+        "latestDate": "2026-08"
       }
     },
     {
@@ -2863,7 +2869,8 @@
         "2025-06",
         "2025-09",
         "2025-12",
-        "2026-03"
+        "2026-03",
+        "2026-06"
       ],
       "canada": {
         "values": [
@@ -2971,7 +2978,8 @@
           529814,
           531906,
           535580,
-          529694
+          529694,
+          null
         ],
         "unit": "CAD Million",
         "source": "Statistics Canada",
@@ -3084,12 +3092,13 @@
           4380.5,
           4389.3,
           4405.7,
-          4475.1
+          4475.1,
+          4551
         ],
         "unit": "USD Billion",
         "source": "U.S. Bureau Of Economic Analysis",
-        "latestValue": 4475.1,
-        "latestDate": "2026-03"
+        "latestValue": 4551,
+        "latestDate": "2026-06"
       }
     },
     {
