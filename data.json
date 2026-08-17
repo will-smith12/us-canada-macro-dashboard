@@ -1,5 +1,5 @@
 {
-  "generated": "2026-08-04",
+  "generated": "2026-08-17",
   "source": "Trading Economics, FRED, Bank of Canada, StatCan (weekly refresh)",
   "indicators": [
     {
@@ -775,7 +775,8 @@
         "2026-03",
         "2026-04",
         "2026-05",
-        "2026-06"
+        "2026-06",
+        "2026-07"
       ],
       "canada": {
         "values": [
@@ -1096,12 +1097,13 @@
           2.3853,
           2.8152,
           3.2258,
-          2.7981
+          2.7981,
+          3.0321
         ],
         "unit": "percent",
         "source": "Statistics Canada",
-        "latestValue": 2.7981,
-        "latestDate": "2026-06"
+        "latestValue": 3.0321,
+        "latestDate": "2026-07"
       },
       "us": {
         "values": [
@@ -1422,12 +1424,13 @@
           3.28596,
           3.77925,
           4.16661,
-          3.46353
+          3.46353,
+          3.30386
         ],
         "unit": "percent",
         "source": "U.S. Bureau of Labor Statistics",
-        "latestValue": 3.46353,
-        "latestDate": "2026-06"
+        "latestValue": 3.30386,
+        "latestDate": "2026-07"
       }
     },
     {
@@ -2528,7 +2531,8 @@
         "2025-06",
         "2025-09",
         "2025-12",
-        "2026-03"
+        "2026-03",
+        "2026-06"
       ],
       "canada": {
         "values": [
@@ -2636,6 +2640,7 @@
           103.863,
           104.959,
           104.82,
+          null,
           null
         ],
         "unit": "points",
@@ -2749,12 +2754,13 @@
           117.385,
           118.884,
           119.35,
-          119.4
+          119.594,
+          120.017
         ],
         "unit": "points",
         "source": "U.S. Bureau of Labor Statistics",
-        "latestValue": 119.4,
-        "latestDate": "2026-03"
+        "latestValue": 120.017,
+        "latestDate": "2026-06"
       }
     },
     {
@@ -3871,7 +3877,8 @@
         "2026-03",
         "2026-04",
         "2026-05",
-        "2026-06"
+        "2026-06",
+        "2026-07"
       ],
       "canada": {
         "values": [
@@ -4192,12 +4199,13 @@
           6.7,
           6.9,
           6.6,
-          6.5
+          6.5,
+          6.4
         ],
         "unit": "percent",
         "source": "Statistics Canada",
-        "latestValue": 6.5,
-        "latestDate": "2026-06"
+        "latestValue": 6.4,
+        "latestDate": "2026-07"
       },
       "us": {
         "values": [
@@ -4518,12 +4526,13 @@
           4.3,
           4.3,
           4.3,
-          4.2
+          4.2,
+          4.1
         ],
         "unit": "percent",
         "source": "U.S. Bureau of Labor Statistics",
-        "latestValue": 4.2,
-        "latestDate": "2026-06"
+        "latestValue": 4.1,
+        "latestDate": "2026-07"
       }
     },
     {
@@ -5501,12 +5510,12 @@
           95.9,
           95.3,
           97.4,
-          null
+          99.8
         ],
         "unit": "Index (1986=100)",
         "source": "NFIB Small Business Optimism Index (via Trading Economics)",
-        "latestValue": 97.4,
-        "latestDate": "2026-06"
+        "latestValue": 99.8,
+        "latestDate": "2026-07"
       }
     }
   ]
