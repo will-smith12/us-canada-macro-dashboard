@@ -9,3 +9,8 @@ __pycache__/
 refresh/logs/
 refresh/*.xlsx
 refresh/.env
+
+# Housing / BOS pipeline working dirs (re-fetched from public sources on each run)
+housing/_work/
+bos/cache/
+bos/data/BoC_BOS_wide_readable.xlsx

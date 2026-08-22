@@ -2,8 +2,8 @@
 """
 Build data.js / data.json for the Canada Housing Indices dashboard.
 
-Reads the deliverable workbook (~/Downloads/canada_housing_indices.xlsx, produced
-by ~/Downloads/housing_indices/build_housing_indices.py) and emits a single
+Reads the deliverable workbook (housing/data/canada_housing_indices.xlsx, produced
+by build_housing_indices.py in this same folder) and emits a single
 compact JSON payload consumed by index.html (offline, file://).
 
 Shape (window.HOUSING_DATA):
@@ -25,7 +25,7 @@ Shape (window.HOUSING_DATA):
              statcan_canada_value_Mcad } }
 }
 
-Usage: ~/.venv-relanalysis/bin/python build_dashboard_data.py
+Usage: python build_dashboard_data.py
 """
 from __future__ import annotations
 
@@ -37,8 +37,8 @@ from pathlib import Path
 
 import pandas as pd
 
-SRC = Path(os.path.expanduser("~/Downloads/canada_housing_indices.xlsx"))
 HERE = Path(__file__).resolve().parent
+SRC = Path(os.environ.get("HOUSING_XLSX") or HERE / "data" / "canada_housing_indices.xlsx")
 
 
 def _num(v):
@@ -194,7 +194,7 @@ def main() -> int:
         "generated": dt.date.today().isoformat(),
         "source_note": ("Teranet–National Bank HPI (repeat-sales), CREA MLS HPI (hedonic/benchmark) "
                         "and StatCan / provincial assessment values (appraisal). Pulled from source; "
-                        "see ~/Downloads/canada_housing_indices.xlsx."),
+                        "see housing/data/canada_housing_indices.xlsx."),
         "families": {
             "teranet": build_teranet(xl),
             "crea": build_crea(xl),

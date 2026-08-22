@@ -4,7 +4,7 @@ Build the BoS dashboard's data files from the Bank of Canada Business Outlook
 Survey (BOS) disaggregated spreadsheet.
 
 Reads the tidy sheets (Sector_tidy, Region_tidy, Size_tidy) plus Definitions /
-Notes from ``~/Downloads/BoC_BOS_sector_region.xlsx`` (no network needed) and
+Notes from ``bos/data/BoC_BOS_sector_region.xlsx`` (no network needed) and
 writes two byte-identical payloads next to this script:
 
   * ``data.js``   ->  ``window.BOS_DATA = { ... };``   (used when opened via file://)
@@ -31,9 +31,9 @@ such as *Past sales growth* simply trail off).
     }
 
 Regenerate after refreshing the underlying workbook
-(``~/Downloads/bos_harvest/build_xlsx.py``):
+(``build_xlsx.py`` in this same folder):
 
-    ~/.venv-relanalysis/bin/python build_bos_data.py
+    python build_bos_data.py
 """
 from __future__ import annotations
 
@@ -44,15 +44,15 @@ from datetime import date
 
 import pandas as pd
 
-SRC = os.path.expanduser("~/Downloads/BoC_BOS_sector_region.xlsx")
 HERE = os.path.dirname(os.path.abspath(__file__))
+SRC = os.environ.get("BOS_XLSX") or os.path.join(HERE, "data", "BoC_BOS_sector_region.xlsx")
 OUT_JSON = os.path.join(HERE, "data.json")
 OUT_JS = os.path.join(HERE, "data.js")
 
 # Already-pulled Canada-vs-U.S. small-business sentiment lives in the sibling
 # us-canada-macro-dashboard payload (CFIB Business Barometer vs NFIB Small
 # Business Optimism Index). We reuse it here as an extra "comparison" card.
-SENT_SRC = os.path.expanduser("~/us-canada-macro-dashboard/data.json")
+SENT_SRC = os.environ.get("MACRO_DATA_JSON") or os.path.join(os.path.dirname(HERE), "data.json")
 
 SOURCE_LABEL = "Bank of Canada, Business Outlook Survey (Valet API, public)"
 
