@@ -14,6 +14,15 @@ they keep 100% of their features without colliding:
 
 ## Reproduce & publish this dashboard (full walkthrough)
 
+**Taking this over from someone else? Start with
+[docs/HANDOVER-MACRO-DASHBOARD.md](docs/HANDOVER-MACRO-DASHBOARD.md)** — what the
+dashboard is, how the weekly auto-update works, how to run it yourself, and what to do
+when it breaks.
+
+The data refreshes **automatically every Monday** via GitHub Actions
+([`.github/workflows/refresh-dashboard.yml`](.github/workflows/refresh-dashboard.yml)) —
+no laptop involved. `last_refresh.json` records when it last ran.
+
 New to GitHub, or handing this off to someone who is? See
 **[docs/REPRODUCTION-GUIDE.md](docs/REPRODUCTION-GUIDE.md)** — a beginner-friendly, end-to-end guide
 (Windows **and** macOS) that covers the whole pipeline from a basic origin: refreshing the Excel
