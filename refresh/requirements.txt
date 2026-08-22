@@ -1,0 +1,10 @@
+# Dependencies for the weekly macro refresh (refresh/macro_refresh).
+#
+# Installed by .github/workflows/refresh-dashboard.yml and by anyone running
+# the refresh locally. Playwright additionally needs a browser binary:
+#     python -m playwright install chromium
+
+requests>=2.31
+openpyxl>=3.1
+pandas>=2.0
+playwright>=1.40

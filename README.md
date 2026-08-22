@@ -12,6 +12,14 @@ they keep 100% of their features without colliding:
 - **Business Outlook** (`bos/`) — the Bank of Canada Business Outlook Survey (14 indicators by
   sector / region / firm size, plus a Canada-vs-U.S. sentiment comparison).
 
+## Reproduce & publish this dashboard (full walkthrough)
+
+New to GitHub, or handing this off to someone who is? See
+**[docs/REPRODUCTION-GUIDE.md](docs/REPRODUCTION-GUIDE.md)** — a beginner-friendly, end-to-end guide
+(Windows **and** macOS) that covers the whole pipeline from a basic origin: refreshing the Excel
+workbook with `macro_refresh`, regenerating `data.js` / `data.json` via `update_dashboard_data.py`,
+and publishing to GitHub Pages.
+
 ## Run it
 
 **Easiest:** just **double-click `index.html`** (or `open.command`) — it opens the tabbed shell in

@@ -1,0 +1,105 @@
+name: Refresh dashboard data
+
+# Rebuilds the macro workbook from source APIs, regenerates data.json / data.js,
+# and commits them. GitHub Pages serves this repo, so a commit here IS the
+# publish step -- the live site updates a minute or two later.
+#
+# This replaces the old setup, which ran on one person's Mac via a launchd agent
+# (com.willsmith.macrorefresh). Running it here means the dashboard keeps
+# updating no matter whose laptop is on.
+#
+# Requires one repository secret:
+#   FRED_API_KEY  - free key from https://fredaccount.stlouisfed.org/apikeys
+#                   Settings -> Secrets and variables -> Actions -> New repository secret
+#
+# The workbook is rebuilt from scratch every run (~2 minutes); no state is
+# carried between runs, so there is nothing to restore, back up or corrupt.
+
+on:
+  schedule:
+    - cron: "0 14 * * 1"      # Mondays 14:00 UTC (07:00 PT), matching the old local schedule
+  workflow_dispatch:           # lets anyone run it on demand from the Actions tab
+    inputs:
+      te_scope:
+        description: "Trading Economics breadth: key (~1 min) or full (slow)"
+        type: choice
+        options: ["key", "full"]
+        default: "key"
+
+concurrency:
+  group: refresh-dashboard
+  cancel-in-progress: false
+
+permissions:
+  contents: write              # needed to commit the regenerated data files
+
+jobs:
+  refresh:
+    runs-on: ubuntu-latest
+    timeout-minutes: 90        # key scope takes ~2 min; full scope is the slow path
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+          cache: pip
+
+      - name: Install dependencies
+        run: pip install -r refresh/requirements.txt
+
+      - name: Install Chromium for the Trading Economics scrape
+        run: python -m playwright install --with-deps chromium
+
+      - name: Rebuild the macro workbook from source APIs
+        working-directory: refresh
+        env:
+          FRED_API_KEY: ${{ secrets.FRED_API_KEY }}
+        run: |
+          if [ -z "${FRED_API_KEY}" ]; then
+            echo "::error::FRED_API_KEY secret is not set. Add it under"
+            echo "::error::Settings -> Secrets and variables -> Actions."
+            exit 1
+          fi
+          python -m macro_refresh.refresh \
+            --only fredboc te \
+            --te-scope "${{ inputs.te_scope || 'key' }}" \
+            --no-backup \
+            --target "${RUNNER_TEMP}/macro.xlsx"
+
+      - name: Regenerate data.json and data.js
+        run: python update_dashboard_data.py --workbook "${RUNNER_TEMP}/macro.xlsx"
+
+      # Fails loudly rather than silently publishing an empty dashboard if an
+      # upstream source changed shape.
+      - name: Sanity-check the generated data
+        run: |
+          python - <<'PY'
+          import json, sys
+          d = json.load(open("data.json"))
+          inds = d.get("indicators", [])
+          print(f"generated: {d.get('generated')}  indicators: {len(inds)}")
+          if len(inds) < 10:
+              sys.exit(f"FAIL: expected at least 10 indicators, got {len(inds)}")
+          empty = [i["name"] for i in inds if not i.get("dates")]
+          for name in empty:
+              print(f"  WARNING: '{name}' has no dates")
+          if len(empty) > 2:
+              sys.exit(f"FAIL: {len(empty)} indicators came back empty - "
+                       "an upstream source has probably changed shape.")
+          print("sanity check passed")
+          PY
+
+      - name: Commit and publish
+        run: |
+          git config user.name  "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add -- data.json data.js
+          if git diff --cached --quiet -- data.json data.js; then
+            echo "No change in the underlying series - nothing to publish."
+            exit 0
+          fi
+          git commit -m "Auto-refresh dashboard data ($(date -u +%Y-%m-%d))"
+          git push
+          echo "Published. GitHub Pages will pick this up within a few minutes."
