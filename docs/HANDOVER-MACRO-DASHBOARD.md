@@ -26,6 +26,40 @@ that the repository still sits on his *personal* GitHub account.
 
 ---
 
+## 1a. Using this document with GitHub Copilot
+
+You will most likely be working through Copilot rather than typing commands yourself.
+This document is written to suit that: **every operational section gives you a prompt to
+paste into Copilot, followed by the exact underlying command.**
+
+Both are there deliberately. The prompt is what you will actually use. The command is the
+ground truth — it is what the weekly cloud job runs, it has been verified to work, and it
+is what Copilot should end up executing. If Copilot ever proposes something noticeably
+different from the command shown, trust the document over the suggestion and say so.
+
+**The single most useful thing you can do first** is open the repository folder in VS Code
+(or point Copilot CLI at it) and ask:
+
+> Read `docs/HANDOVER-MACRO-DASHBOARD.md` and `.github/workflows/refresh-dashboard.yml`,
+> then explain in your own words how this dashboard updates itself and what I would need
+> to do if the weekly job started failing.
+
+That gives Copilot the full picture in one go, and its answer doubles as a check that you
+have the whole repo and not a partial copy.
+
+Two habits worth keeping:
+
+- **Ask Copilot to explain before it changes anything.** "What does this do?" is safer
+  than "fix this", especially with the scrape code.
+- **Tell it what you have already tried.** Pasting the failing log line from the Actions
+  tab into the prompt gets a far better answer than describing the symptom.
+
+> ⚠️ One caution: this repo is public, but your **FRED API key is not**. Do not paste the
+> key into a prompt, a file, or a commit. It belongs in an environment variable or a
+> GitHub secret — see [§5](#5-getting-it-onto-your-machine).
+
+---
+
 ## 2. What the dashboard is
 
 A single-page website showing ten macroeconomic indicators for Canada and the United
@@ -98,15 +132,34 @@ Defined in `.github/workflows/refresh-dashboard.yml`.
 
 Go to the repo → **Actions** tab → **Refresh dashboard data**. Green tick = ran fine.
 
+Or ask Copilot:
+
+> Show me the last few runs of the "Refresh dashboard data" workflow in this repo and
+> whether they succeeded.
+
 ### Running it yourself, on demand
 
-Same screen: **Run workflow** → **Run workflow**. There is one option, `te_scope`:
+From the same screen: **Run workflow** → **Run workflow**. Or ask Copilot:
+
+> Trigger the "Refresh dashboard data" workflow with `te_scope` set to `key`, then tell me
+> when it finishes and whether it published anything.
+
+There is one option, `te_scope`:
 
 - **`key`** (default) — about 1 minute. Fetches the series the dashboard displays.
   This is the right choice essentially always.
 - **`full`** — several hours. Fetches the entire Trading Economics catalogue into the
   workbook. Only useful if you are doing separate research off the workbook itself.
   Not needed to update the website.
+
+<details>
+<summary>The commands behind those prompts</summary>
+
+```bash
+gh run list --workflow=refresh-dashboard.yml --limit 5
+gh workflow run refresh-dashboard.yml -f te_scope=key
+```
+</details>
 
 ### Knowing whether it is still alive
 
@@ -139,37 +192,73 @@ refresh by hand. **Simply viewing the dashboard needs nothing but the URL.**
 
 ### One-time setup
 
-You need **Git** and **Python 3.12+**.
+You need **Git** and **Python 3.12+**. If you are not sure whether you have them, ask
+Copilot:
+
+> Do I have Git and Python 3.12 or newer installed? If not, tell me how to install them
+> on this machine.
+
+Then, to get the code and its dependencies:
+
+> Clone `https://github.com/will-smith12/us-canada-macro-dashboard`, then install the
+> Python dependencies from `refresh/requirements.txt` and install the Chromium browser
+> that Playwright needs.
+
+<details>
+<summary>The commands behind that prompt</summary>
 
 ```bash
-# 1. Clone the repository
 git clone https://github.com/will-smith12/us-canada-macro-dashboard.git
 cd us-canada-macro-dashboard
-
-# 2. Install the Python dependencies
 python -m pip install -r refresh/requirements.txt
-
-# 3. Install the browser the Trading Economics scrape drives
 python -m playwright install chromium
 ```
+</details>
+
+The Playwright step is the one people miss. It downloads an actual browser, which the
+Trading Economics scrape drives. Without it the refresh fails at the scrape step with a
+"browser not found" style error.
 
 ### Get your own FRED API key
 
 The US data comes from FRED, which requires a free key.
 
 1. Sign up at https://fredaccount.stlouisfed.org/apikeys
-2. Copy the key and set it as an environment variable:
+2. Set it as an environment variable — ask Copilot:
+
+> Set an environment variable called `FRED_API_KEY` on this machine so it persists in new
+> terminal sessions. I will give you the value to use.
+
+<details>
+<summary>The commands behind that prompt</summary>
 
 ```bash
-export FRED_API_KEY=your_key_here          # macOS / Linux
+export FRED_API_KEY=your_key_here          # macOS / Linux (add to ~/.zshrc to persist)
 setx FRED_API_KEY "your_key_here"          # Windows (then reopen the terminal)
 ```
+</details>
 
-> ⚠️ **Please do this rather than reusing the existing key.** The key currently
-> configured in the repository is registered to Will personally and should be treated as
-> retired once he has left. See [§7](#7-open-items-need-someone-other-than-will).
+> ⚠️ **Use your own key rather than reusing the existing one.** The key currently in the
+> repository secret is registered to Will personally and should be treated as retired once
+> he has left. See [§7](#7-open-items-need-someone-other-than-will).
+>
+> And as above — **do not paste the key itself into a Copilot prompt.** Set the variable
+> yourself, or let Copilot write the command with a placeholder that you fill in.
 
 ### Run a refresh by hand
+
+You should rarely need this, since the cloud job does it weekly. It is useful when the
+cloud job is failing and you want an update now, or when you are testing a change.
+
+> Run a manual dashboard refresh exactly as `docs/HANDOVER-MACRO-DASHBOARD.md` describes:
+> rebuild the workbook to a scratch file, regenerate the dashboard data from it, then show
+> me what changed before anything is committed.
+
+Asking to **see the diff before committing** is the important part of that prompt — it
+keeps you in control of what reaches the live site.
+
+<details>
+<summary>The commands behind that prompt</summary>
 
 ```bash
 # Rebuild the workbook (~75 seconds). Run this from inside refresh/ --
@@ -187,6 +276,7 @@ git add data.json data.js
 git commit -m "Manual refresh"
 git push
 ```
+</details>
 
 `--no-backup` matters: without it the tool tries to take a timestamped backup of the
 *configured* master workbook, which is a path on Will's old machine and will not exist
@@ -213,6 +303,53 @@ serving the last good data. That buys you time — failures are never an emergen
 | Fails at **"Sanity-check the generated data"** | An upstream source changed shape and series came back empty | This is the check doing its job — it deliberately refuses to publish empty data over good data. Inspect the log to see which indicator broke |
 | Runs green, but the site looks stale | Usually correct — nothing changed that week | Check `data_generated` in `last_refresh.json`. Also try a hard refresh (Ctrl/Cmd+Shift+R) to defeat browser caching |
 | Nothing has run for weeks | GitHub disables scheduled workflows in repos with ~60 days of no activity | Go to Actions and re-enable, or push any commit |
+
+### Diagnosing with Copilot
+
+The fastest route with any Actions failure is to get the log in front of Copilot rather
+than describing the symptom:
+
+> The "Refresh dashboard data" workflow failed. Fetch the log for the most recent run,
+> find the step that failed and the actual error, and explain what it means in plain terms
+> before suggesting a fix.
+
+If you have the GitHub CLI available, Copilot can pull the log directly:
+
+<details>
+<summary>The commands behind that prompt</summary>
+
+```bash
+# List recent runs and their outcomes
+gh run list --workflow=refresh-dashboard.yml --limit 5
+
+# Full log for the most recent run
+gh run view --log $(gh run list --workflow=refresh-dashboard.yml \
+                    --limit 1 --json databaseId -q '.[0].databaseId')
+
+# Re-run the most recent failed run
+gh run rerun $(gh run list --workflow=refresh-dashboard.yml \
+               --limit 1 --json databaseId -q '.[0].databaseId')
+```
+</details>
+
+Two prompts worth keeping for the two most likely failures:
+
+**The scrape has broken** (fails at "Rebuild the macro workbook", repeatedly):
+
+> `refresh/macro_refresh/te_scrape.py` scrapes Trading Economics and it has started
+> failing. Read the file, explain how it locates the data on the page, and work out
+> whether the page structure has changed. Do not change anything yet — just tell me what
+> you find.
+
+**The site looks stale but the job is green:**
+
+> Compare `last_refresh_utc` and `data_generated` in `last_refresh.json` against today's
+> date, and tell me whether this dashboard is genuinely stale or just unchanged because no
+> figures moved.
+
+A caution on the scrape specifically: it is the most delicate part of this system, and it
+is code Copilot cannot verify without running it. Have it explain and propose, then run a
+manual refresh (§5) to confirm a fix actually works before pushing anything.
 
 **Fallback:** if the cloud job is broken and you need an update now, run the manual steps
 in §5 from your own machine. The two paths are the same code.
@@ -298,7 +435,7 @@ In the interest of not overstating this:
 |---|---|
 | Live dashboard | https://will-smith12.github.io/us-canada-macro-dashboard/ |
 | Repository | https://github.com/will-smith12/us-canada-macro-dashboard |
-| Run / monitor the refresh | Repo → Actions → "Refresh dashboard data" |
+| Run / monitor the refresh | Repo → Actions → "Refresh dashboard data", or ask Copilot (see below) |
 | Is it still alive? | `last_refresh.json` in the repo root |
 | The schedule and steps | `.github/workflows/refresh-dashboard.yml` |
 | Data collection code | `refresh/macro_refresh/` |
@@ -310,6 +447,18 @@ In the interest of not overstating this:
 > in much more detail, assuming no GitHub experience. It is still accurate for running
 > things by hand — just note that the automation it describes at the end (the launchd
 > agent on a Mac) has been replaced by the GitHub Actions workflow described here.
+
+### The five prompts worth keeping
+
+Paste these into Copilot with the repo open.
+
+| Situation | Prompt |
+|---|---|
+| **Getting oriented** | *Read `docs/HANDOVER-MACRO-DASHBOARD.md` and `.github/workflows/refresh-dashboard.yml`, then explain how this dashboard updates itself and what I'd do if the weekly job started failing.* |
+| **Is it healthy?** | *Show me the last few runs of the "Refresh dashboard data" workflow, and compare `last_refresh_utc` in `last_refresh.json` to today's date. Is this dashboard current?* |
+| **Update it now** | *Trigger the "Refresh dashboard data" workflow with `te_scope` set to `key`, then tell me when it finishes and whether it published anything.* |
+| **It failed** | *The "Refresh dashboard data" workflow failed. Fetch the log for the most recent run, find the step that failed and the actual error, and explain what it means before suggesting a fix.* |
+| **Refresh by hand** | *Run a manual dashboard refresh exactly as `docs/HANDOVER-MACRO-DASHBOARD.md` describes: rebuild the workbook to a scratch file, regenerate the dashboard data, then show me what changed before anything is committed.* |
 
 ---
 
