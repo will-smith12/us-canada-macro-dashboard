@@ -360,20 +360,46 @@ in §5 from your own machine. The two paths are the same code.
 
 These could not be closed from Will's account and need action.
 
-### 7.1 Move the repository to the `judi-ai` organisation — *most important*
+### 7.1 Land the copy that is already inside Data.Science — *most important*
 
-The repository currently lives on **Will's personal GitHub account**. It is public, so it
-will remain *readable*, but ownership sits with a departing employee, which is not where
-a team asset should be.
+The repository still lives on **Will's personal GitHub account**. Ownership sitting with a
+departing employee is not where a team asset belongs, and when that account is deleted, so
+is this repo.
 
-This could not be done from this side: `judi-ai` has `members_can_create_repositories`
-disabled, so a member cannot create or receive the repo. **A GitHub organisation admin
-must action this**, either by transferring the repo into `judi-ai` or by creating an
-empty repo there for the history to be pushed into.
+**This is already most of the way solved.** The whole dashboard has been imported into the
+company repository at
+**`judi-ai/Data.Science` → `ResearchAndAnalytics/MacroDashboard/`**, awaiting review in
+**[PR #113](https://github.com/judi-ai/Data.Science/pull/113)**. The import used
+`git subtree`, so the dashboard's full 22-commit history came with it and will survive the
+personal account being deleted.
 
-Once transferred, the Pages URL changes to
-`https://judi-ai.github.io/us-canada-macro-dashboard/` — worth updating any Confluence or
-bookmark links at that point.
+That PR also adds a workflow which does the weekly refresh *and* can publish the dashboard
+as a Pages site from inside Data.Science. It is committed **dormant** — merging it starts
+nothing until an admin opts in.
+
+**What still needs a repo admin on Data.Science:**
+
+| Action | Where | Effect |
+|---|---|---|
+| Merge PR #113 | — | Code is org-owned; history preserved |
+| Add secret `FRED_API_KEY` | Settings → Secrets and variables → Actions | The weekly refresh can run |
+| Set variable `PUBLISH_MACRO_DASHBOARD` = `true` | same screen | Turns on the publish step |
+| Settings → Pages → Source: **GitHub Actions** | Settings → Pages | Serves the site from the subfolder |
+
+Because Data.Science is private and the org is on Enterprise, that Pages site can be
+restricted to people with repo access, rather than being fully public as it is today —
+usually the better default for an internal dashboard.
+
+Until all that happens, the existing public site keeps serving, so **there is no gap**.
+Once it is running from Data.Science, the personal repo can be archived and any Confluence
+or bookmark links repointed.
+
+> An earlier version of this document said transferring the repo was blocked because
+> `judi-ai` disallows members creating repositories. That is still true of *creating a new
+> repo*, but it turned out not to matter: the dashboard could simply be added as a folder
+> inside the existing Data.Science repo, and a Pages site can be published from a nested
+> folder using an Actions workflow. Both of those were things this document previously got
+> wrong.
 
 ### 7.2 Replace the FRED API key
 
@@ -397,6 +423,23 @@ an account) or the org admin doing the transfer to grant admin.
 
 By design — see §3, it is rebuilt from scratch each run. Mentioned only so nobody goes
 hunting for a master copy to preserve. There isn't one, and there doesn't need to be.
+
+### 7.5 The news panel is already broken, and depends on Will's Render account
+
+The Macro Indicators tab has a news panel that calls `news-desk.onrender.com` — a small
+service hosted on **Will's personal Render account**, separate from GitHub entirely.
+
+As of 22 Aug 2026 that service returns **404 on every endpoint**, so the panel is not
+working today. This is pre-existing and unrelated to the move to GitHub Actions.
+
+The good news is that the backend's source is in the repository (`news_agents.py`,
+`Dockerfile`, `render.yaml`), so it can be redeployed to any container host by whoever
+wants it. Decide whether the feature is worth keeping; if not, the panel should be removed
+from `macro.html` so the dashboard stops calling a dead endpoint.
+
+The token visible in `macro.html` next to that call is **not a credential** — the code
+comments explain it is a throwaway string that pairs with the backend's CORS lock and rate
+limit. It does not need rotating.
 
 ---
 
