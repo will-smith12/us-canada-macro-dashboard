@@ -91,15 +91,45 @@ jobs:
           print("sanity check passed")
           PY
 
+      # The heartbeat is written on every successful run, even when no series
+      # moved. Two reasons: it tells a reader at a glance when the automation
+      # last actually ran (a stale date here means the job is broken, which is
+      # otherwise invisible), and it means every run exercises the git push, so
+      # a broken token or permission fails loudly instead of hiding behind a
+      # "nothing to publish" no-op.
+      - name: Record the heartbeat
+        run: |
+          python - <<'PY'
+          import json, os, datetime
+          data = json.load(open("data.json"))
+          json.dump({
+              "last_refresh_utc": datetime.datetime.now(datetime.UTC)
+                                   .strftime("%Y-%m-%d %H:%M:%S"),
+              "data_generated":   data.get("generated"),
+              "indicators":       len(data.get("indicators", [])),
+              "te_scope":         os.environ.get("TE_SCOPE", "key"),
+              "run":              os.environ.get("RUN_URL", ""),
+          }, open("last_refresh.json", "w"), indent=2)
+          print(open("last_refresh.json").read())
+          PY
+        env:
+          TE_SCOPE: ${{ github.event.inputs.te_scope || 'key' }}
+          RUN_URL: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
+
       - name: Commit and publish
         run: |
           git config user.name  "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-          git add -- data.json data.js
+          git add -- data.json data.js last_refresh.json
           if git diff --cached --quiet -- data.json data.js; then
-            echo "No change in the underlying series - nothing to publish."
-            exit 0
+            msg="Refresh ran; no change in the underlying series ($(date -u +%Y-%m-%d))"
+            echo "No series moved - publishing the heartbeat only."
+          else
+            msg="Auto-refresh dashboard data ($(date -u +%Y-%m-%d))"
+            echo "Series changed - publishing updated data."
           fi
-          git commit -m "Auto-refresh dashboard data ($(date -u +%Y-%m-%d))"
+          git commit -m "$msg"
+          # Rebase in case someone pushed while the refresh was running.
+          git pull --rebase --autostash origin main
           git push
           echo "Published. GitHub Pages will pick this up within a few minutes."
