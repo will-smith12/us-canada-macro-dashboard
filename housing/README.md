@@ -1,7 +1,7 @@
 # Canada Housing Price Indices — Dashboard
 
 A self-contained, **offline** dashboard for Canada's three main house-price index
-families, pulled from source into `~/Downloads/canada_housing_indices.xlsx`:
+families, pulled from source into `data/canada_housing_indices.xlsx`:
 
 | Family | Method | Coverage |
 |--------|--------|----------|
@@ -28,27 +28,44 @@ families, pulled from source into `~/Downloads/canada_housing_indices.xlsx`:
 ## Data pipeline
 
 ```
-~/Downloads/housing_indices/build_housing_indices.py   # pulls sources -> canada_housing_indices.xlsx
+build_housing_indices.py    # fetches Teranet + CREA + StatCan/Alberta
+        │                   #   -> data/canada_housing_indices.xlsx
+        ▼
+build_dashboard_data.py     # reads the workbook -> data.js (window.HOUSING_DATA) + data.json
         │
         ▼
-build_dashboard_data.py   # reads the workbook -> data.js (window.HOUSING_DATA) + data.json
-        │
-        ▼
-index.html                # offline frontend (bundled Chart.js)
+index.html                  # offline frontend (bundled Chart.js)
 ```
 
-Rebuild after refreshing the workbook:
+Full rebuild from source (both steps, no API key needed — all sources are public):
 
 ```bash
-~/.venv-relanalysis/bin/python build_dashboard_data.py
+pip install -r requirements.txt     # pandas + openpyxl
+python build_housing_indices.py     # ~2 min; fetches into _work/, writes data/
+python build_dashboard_data.py      # regenerates data.js / data.json
 ```
+
+If you only changed how the payload is shaped, the second step alone is enough — the
+committed workbook in `data/` is a valid input on its own.
+
+Paths resolve next to the scripts, so a fresh clone works anywhere with no configuration.
+`HOUSING_XLSX` and `HOUSING_WORK` override the workbook and scratch locations if needed.
+`build_housing_indices.py --no-fetch` reuses whatever is already in `_work/` (offline re-run).
+
+> **Why the workbook is committed.** Several upstream URLs are dated — CREA is keyed by
+> month, Alberta's open-data resources by year — so they will eventually stop resolving.
+> The committed workbook means the dashboard stays rebuildable even after that happens.
+> The bulk raw downloads are *not* committed; they re-fetch into the gitignored `_work/`.
 
 ## Files
 
 - `index.html` — the dashboard (self-contained; bundled `chart.umd.min.js`, `chartjs-plugin-zoom.min.js`, `hammer.min.js`).
+- `build_housing_indices.py` — fetches the three source families into `data/canada_housing_indices.xlsx`.
 - `build_dashboard_data.py` — regenerates `data.js` / `data.json` from the workbook.
+- `data/canada_housing_indices.xlsx` — the source workbook (committed; see note above).
 - `data.js` / `data.json` — generated data payload.
 - `start.command` — local-server launcher.
+- `_work/` — scratch space for fetched source files; gitignored, safe to delete.
 
 ## Caveats
 

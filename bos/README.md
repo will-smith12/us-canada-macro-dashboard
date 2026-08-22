@@ -7,7 +7,7 @@ Outlook Survey (BOS)** disaggregated panels — each survey indicator broken dow
 
 **🔗 Live:** https://will-smith12.github.io/bos-dashboard/
 
-Built from `~/Downloads/BoC_BOS_sector_region.xlsx` (the tidy BOS spreadsheet
+Built from `data/BoC_BOS_sector_region.xlsx` (the tidy BOS spreadsheet
 harvested from the public BoC Valet API).
 
 ## Run it
@@ -70,7 +70,7 @@ indicator is Region-only (shorter history, standardized units).
 The dashboard reads the tidy spreadsheet and rebuilds its two data files:
 
 ```bash
-~/.venv-relanalysis/bin/python build_bos_data.py
+python build_bos_data.py
 # writes data.json + data.js next to index.html
 ```
 
@@ -78,29 +78,38 @@ To pull **new quarters** from the Bank of Canada first, re-run the upstream
 harvester, then rebuild:
 
 ```bash
-~/.venv-relanalysis/bin/python ~/Downloads/bos_harvest/build_xlsx.py   # refresh BoC_BOS_sector_region.xlsx
-~/.venv-relanalysis/bin/python build_bos_data.py                        # rebuild dashboard data
+pip install -r requirements.txt   # pandas + openpyxl
+python build_xlsx.py        # fetches the Valet API -> data/BoC_BOS_sector_region.xlsx
+python build_bos_data.py    # rebuild dashboard data
 ```
 
-The Canada-vs-U.S. sentiment card is pulled from the already-generated
-`~/us-canada-macro-dashboard/data.json` (its "Small Business Sentiment"
-indicator). If that file is absent, the build simply skips the card.
+The Valet API is public and needs no key, so both steps run unattended. Paths
+resolve next to the scripts, so a fresh clone works anywhere; `BOS_XLSX` and
+`BOS_WORK` override the workbook and cache locations if needed. Responses cache
+into the gitignored `cache/`, which is safe to delete.
+
+`data/BoC_BOS_sector_region.xlsx` is committed so the dashboard stays rebuildable
+even if the upstream group catalogue changes; the bulk cached API responses are not.
+
+The Canada-vs-U.S. sentiment card is pulled from the macro dashboard's
+`data.json` in the parent folder (its "Small Business Sentiment" indicator).
+If that file is absent the build **skips the card silently** rather than
+failing — so if the card disappears, check that path first. `MACRO_DATA_JSON`
+overrides it.
 
 `build_bos_data.py` prints a verification summary (indicator / member / quarter
 counts and data-point totals) each run.
 
 ## Publishing / updating GitHub Pages
 
-This repo is served as a static site at
-**https://will-smith12.github.io/bos-dashboard/** (Pages source: `main`
-branch, root). To publish updates after a data refresh, just commit and push —
-Pages rebuilds automatically:
+This dashboard ships as part of the parent repo and is published by its
+GitHub Actions workflow. To publish updates after a data refresh, commit and
+push — Pages rebuilds automatically:
 
 ```bash
-cd ~/bos-dashboard
-~/.venv-relanalysis/bin/python build_bos_data.py   # refresh data.js + data.json
+python build_bos_data.py   # refresh data.js + data.json
 git commit -am "Refresh BoS data"
-git push                                           # Pages redeploys in ~1 min
+git push                   # Pages redeploys in ~1 min
 ```
 
 `.nojekyll` is committed so GitHub serves the files as-is (no Jekyll
@@ -109,14 +118,20 @@ processing).
 ## Files
 
 - `index.html` — the dashboard app (self-contained; uses the bundled libs below).
+- `harvest.py` — enumerates and caches BOS groups from the BoC Valet API.
+- `build_xlsx.py` — builds `data/BoC_BOS_sector_region.xlsx` from the Valet API.
+- `build_wide_readable.py` — optional human-readable wide workbook, one sheet per indicator.
+- `candidates.json` / `groups_all.json` — the Valet group catalogue the build reads.
 - `build_bos_data.py` — extracts `data.js` + `data.json` from
-  `BoC_BOS_sector_region.xlsx` (tidy sheets `Sector_tidy` / `Region_tidy` /
+  `data/BoC_BOS_sector_region.xlsx` (tidy sheets `Sector_tidy` / `Region_tidy` /
   `Size_tidy` + `Definitions` / `Notes`).
+- `data/BoC_BOS_sector_region.xlsx` — the source workbook (committed; see note above).
 - `data.js` — data embedded as JS so the page works when opened directly (`file://`).
 - `data.json` — the same payload as JSON (used when served over HTTP).
 - `chart.umd.min.js`, `chartjs-plugin-zoom.min.js`, `hammer.min.js` — Chart.js +
   zoom/pan, bundled so the app works offline.
 - `start.command` — one-click local HTTP launcher.
+- `cache/` — cached Valet API responses; gitignored, safe to delete.
 
 ## Source
 

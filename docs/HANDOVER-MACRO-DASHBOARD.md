@@ -71,9 +71,10 @@ It is a **static website**. There is no server, no database and no login. The si
 a handful of HTML/JavaScript files plus one data file, served free by GitHub Pages.
 That is why it is cheap and hard to break: there is nothing running that can crash.
 
-The repo also carries two sibling dashboards (`housing/`, `bos/` — the Bank of Canada
-Business Outlook Survey). This brief is about the main macro dashboard; the others
-follow the same publishing model.
+The repo also carries two sibling dashboards — `housing/` (Canadian house-price
+indices) and `bos/` (the Bank of Canada Business Outlook Survey). They follow the same
+publishing model but have **their own, separate data pipelines**, described in §3a.
+Only the macro dashboard refreshes automatically.
 
 ---
 
@@ -113,6 +114,44 @@ coming out byte-for-byte identical (the tenth was a genuine new inflation readin
 Practically, that means **there is no state to protect** — no master file to back up, no
 cache to keep warm, nothing that can slowly corrupt. If a run fails, the next run starts
 clean. This is the single biggest reason the setup is now low-maintenance.
+
+---
+
+## 3a. The other two dashboards
+
+The Housing and Business Outlook tabs are **not** produced by the pipeline above. Each has
+its own two-step chain, and neither runs automatically — they are refreshed by hand, and
+they are not on a schedule because their sources update far less often (housing monthly,
+BOS quarterly).
+
+| Tab | Step 1 — fetch from source | Step 2 — build the page data |
+|---|---|---|
+| **Housing** | `housing/build_housing_indices.py` → `housing/data/canada_housing_indices.xlsx` | `housing/build_dashboard_data.py` → `housing/data.json` |
+| **Business Outlook** | `bos/build_xlsx.py` → `bos/data/BoC_BOS_sector_region.xlsx` | `bos/build_bos_data.py` → `bos/data.json` |
+
+To refresh either one, install its dependencies (`pandas` and `openpyxl`) and run its two
+steps in order, then commit the result:
+
+```bash
+cd housing && pip install -r requirements.txt
+python build_housing_indices.py && python build_dashboard_data.py
+
+cd ../bos && pip install -r requirements.txt
+python build_xlsx.py && python build_bos_data.py
+
+cd .. && git commit -am "Refresh housing + BOS data" && git push
+```
+
+Both pull from public sources (Teranet, CREA, Statistics Canada, Alberta open data, and
+the Bank of Canada Valet API) and need **no API key** — unlike the macro pipeline, which
+needs the FRED key. Everything resolves relative to the repo, so this works on any machine
+straight after cloning.
+
+> **A caution worth knowing.** Some of the housing source URLs are dated — CREA's file is
+> keyed by month, Alberta's by year — so step 1 will eventually fail as those age out. The
+> built workbooks are committed for exactly this reason, so step 2 keeps working and the
+> dashboard stays rebuildable while someone updates the URLs. If step 1 fails, the site is
+> not in danger; you just won't get newer numbers until it is fixed.
 
 ---
 

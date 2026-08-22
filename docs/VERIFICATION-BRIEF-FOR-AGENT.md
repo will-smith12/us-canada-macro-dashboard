@@ -110,29 +110,34 @@ workbook being present, that contradicts this and is worth reporting.
 
 ```
 raw sources (Teranet JSON, CREA MLS HPI zip, StatCan 34100013, Alberta xlsx)
+        │            public, no API key; fetched via system curl
+        ▼  housing/build_housing_indices.py       ← vendored; writes housing/data/
+housing/data/canada_housing_indices.xlsx          ← committed as a fallback
         │
-        ▼  build_housing_indices.py          ← is this in the repo?
-canada_housing_indices.xlsx                  ← is this in the repo?
-        │
-        ▼  housing/build_dashboard_data.py   ← this one IS in the repo
+        ▼  housing/build_dashboard_data.py
 housing/data.json  +  housing/data.js
 ```
 
 ### 3.3 Business Outlook tab
 
 ```
-Bank of Canada BOS source data
+Bank of Canada Valet API (public, no key)
         │
-        ▼  harvest.py / build_xlsx.py        ← are these in the repo?
-BoC_BOS_sector_region.xlsx                   ← is this in the repo?
+        ▼  bos/harvest.py / bos/build_xlsx.py     ← vendored; writes bos/data/
+bos/data/BoC_BOS_sector_region.xlsx               ← committed as a fallback
         │
-        ▼  bos/build_bos_data.py             ← this one IS in the repo
+        ▼  bos/build_bos_data.py   ← also reads ../data.json for the Canada-vs-US card
 bos/data.json  +  bos/data.js
 ```
 
-For 3.2 and 3.3, read the **docstring and the input path constants at the top** of the in-repo
-build scripts. They name their input file explicitly. Then check whether that input, and whatever
-produces it, exist anywhere in the repository.
+Both chains fetch from public sources, so the bulk raw downloads are deliberately **not**
+committed — they re-fetch into `housing/_work/` and `bos/cache/`, which are gitignored. The two
+built workbooks *are* committed, because several source URLs are dated (CREA is keyed by month,
+Alberta by year) and will eventually stop resolving.
+
+For 3.2 and 3.3, read the **input path constants at the top** of each script. They should resolve
+relative to the script's own directory, with an environment variable as an override. Any absolute
+path beginning `~/` or `/Users/` is a defect — report it.
 
 ---
 
@@ -188,25 +193,36 @@ Work through these and report findings per item. Prefer running commands over re
 
 ### C. Housing and BOS completeness — inspect carefully
 9. For **both** `housing/build_dashboard_data.py` and `bos/build_bos_data.py`: identify the input
-   file path constant. Is that file in the repository?
-10. Is the *upstream* script that produces each input in the repository?
-11. Conclude for each tab: could a new person regenerate this data with only the repo, or not? If
-    not, state exactly which artefacts are missing and what they are called, so they can be
-    hunted down on the author's machine before it is wiped.
+   file path constant. Is that file in the repository, and does the path resolve relative to the
+   script rather than to somebody's home directory?
+10. Is the *upstream* script that produces each input in the repository? Housing should have
+    `build_housing_indices.py`; BOS should have `harvest.py`, `build_xlsx.py` and
+    `build_wide_readable.py` plus `candidates.json` and `groups_all.json`.
+11. Grep both folders for `expanduser`, `~/Downloads`, `/Users/` and `~/us-canada-macro-dashboard`.
+    There should be no absolute path in executable code. This is the specific bug class that broke
+    these two tabs, so check it directly rather than inferring it.
+12. Actually run them, in order — `build_xlsx.py` then `build_bos_data.py`, and
+    `build_housing_indices.py` then `build_dashboard_data.py`. Both upstream scripts fetch from
+    public endpoints with no key, so they should work unattended. Then confirm `bos/data.json`
+    still contains the Canada-vs-US comparison indicator: that card is produced by a cross-folder
+    read that previously failed **silently**, dropping the card without erroring.
+13. Conclude for each tab: could a new person regenerate this data with only the repo, or not?
 
 ### D. Documentation accuracy
-12. `docs/HANDOVER-MACRO-DASHBOARD.md` is the handover document. Spot-check its **commands**
+14. `docs/HANDOVER-MACRO-DASHBOARD.md` is the handover document. Spot-check its **commands**
     against the workflow file — specifically the module invocation and its flags. Documentation
     that has drifted from the workflow is a real defect here, because it is what the next person
     will follow.
-13. Does the README explain that this folder came from another repo and how it now runs?
+15. Does the README explain that this folder came from another repo and how it now runs? Do
+    `housing/README.md` and `bos/README.md` describe the full rebuild, including the upstream
+    step, or do they still only describe the second half?
 
 ### E. Runtime sanity (best effort)
-14. `python -m pip install -r refresh/requirements.txt` and confirm
+16. `python -m pip install -r refresh/requirements.txt` and confirm
     `python -m macro_refresh.refresh --help` runs **from inside `refresh/`**. This proves imports
     and packaging resolve. You will **not** be able to complete a real refresh without a FRED key
     and a browser — do not treat that as a failure, just report how far you got.
-15. `python -c "import json; d=json.load(open('data.json')); print(len(d['indicators']))"` — expect
+17. `python -c "import json; d=json.load(open('data.json')); print(len(d['indicators']))"` — expect
     10, and confirm each indicator has a non-empty `dates` list.
 
 ---
@@ -217,13 +233,19 @@ State agreement or disagreement with each, **with evidence**. If you contradict 
 plainly; these are prior conclusions, not ground truth.
 
 1. The **Macro** tab is fully reproducible from the repo.
-2. The **Housing** tab is **not** — `housing/build_dashboard_data.py` reads
-   `~/Downloads/canada_housing_indices.xlsx`, which is produced by
-   `~/Downloads/housing_indices/build_housing_indices.py` (~496 lines). Neither the workbook nor
-   its generator is in the repo.
-3. The **BOS** tab is **not** — `bos/build_bos_data.py` reads
-   `~/Downloads/BoC_BOS_sector_region.xlsx`, produced by scripts in `~/Downloads/bos_harvest/`.
-   Neither is in the repo.
+2. The **Housing** tab *was* not reproducible and has since been fixed — verify the fix rather
+   than taking it on trust. `housing/build_dashboard_data.py` used to read
+   `~/Downloads/canada_housing_indices.xlsx`, produced by an uncommitted
+   `~/Downloads/housing_indices/build_housing_indices.py`. The generator is now vendored at
+   `housing/build_housing_indices.py` and both paths resolve next to the script
+   (`housing/data/`, `housing/_work/`). Confirm no absolute `~/Downloads` path remains in code.
+3. The **BOS** tab has the same history and the same fix. `bos/build_bos_data.py` used to read
+   `~/Downloads/BoC_BOS_sector_region.xlsx`, produced by uncommitted scripts in
+   `~/Downloads/bos_harvest/`. Those are now vendored as `bos/harvest.py`, `bos/build_xlsx.py`
+   and `bos/build_wide_readable.py`, with `bos/candidates.json` and `bos/groups_all.json`.
+   `bos/build_bos_data.py` also hardcoded an absolute path back to this repo to find the macro
+   tab's `data.json`; that now resolves relatively. Note this one **failed silently** — it just
+   dropped the Canada-vs-US comparison card — so check the card is present in `bos/data.json`.
 4. `generate_data.py` at the root reads `~/Desktop/US_Canada_Macro_Indicators.xlsx` and appears to
    be **superseded** by `update_dashboard_data.py`. Determine whether anything still calls it; if
    it is dead, say so.
@@ -250,9 +272,12 @@ plainly; these are prior conclusions, not ground truth.
 ## 8. How to report
 
 For each of the three tabs, give a one-line verdict — **reproducible / not reproducible / partly**
-— followed by the evidence. Then list, in priority order, the specific artefacts that must be
-rescued from the author's machine before it is decommissioned, with exact filenames and paths.
+— followed by the evidence. All three are *believed* reproducible as of the latest commit; the
+value of this exercise is an independent check of that belief, so do not simply confirm it.
+Then list, in priority order, any artefact still reachable only on the author's machine.
 
 Be concrete and be blunt about gaps. A confident "everything is fine" that misses a broken chain
 is far more damaging here than a cautious finding, because there is a deadline after which the
-missing pieces cannot be recovered at all.
+missing pieces cannot be recovered at all. Note that one of the defects already found was
+**silent** — a bad path degraded the output instead of raising — so prefer running a script and
+inspecting what it produces over reading it and concluding it looks correct.

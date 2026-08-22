@@ -1,0 +1,12 @@
+# Dependencies for the Canada housing indices pipeline.
+#
+#     pip install -r housing/requirements.txt
+#     python build_housing_indices.py     # fetch sources -> data/canada_housing_indices.xlsx
+#     python build_dashboard_data.py      # workbook -> data.js / data.json
+#
+# No API key is required; all sources are public. Source files are fetched with
+# the system `curl` rather than a Python HTTP client, because a corporate MITM
+# proxy can break Python's SSL trust store while curl still trusts it.
+
+pandas>=2.0
+openpyxl>=3.1

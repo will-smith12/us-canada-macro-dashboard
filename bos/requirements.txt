@@ -1,0 +1,11 @@
+# Dependencies for the Bank of Canada Business Outlook Survey pipeline.
+#
+#     pip install -r bos/requirements.txt
+#     python build_xlsx.py        # Valet API -> data/BoC_BOS_sector_region.xlsx
+#     python build_bos_data.py    # workbook -> data.js / data.json
+#
+# The Valet API is public and needs no key. Responses are fetched with the
+# system `curl` and cached in the gitignored cache/ directory.
+
+pandas>=2.0
+openpyxl>=3.1
