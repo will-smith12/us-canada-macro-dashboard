@@ -1,5 +1,5 @@
 {
-  "generated": "2026-09-14",
+  "generated": "2026-09-21",
   "source": "Trading Economics, FRED, Bank of Canada, StatCan (weekly refresh)",
   "indicators": [
     {
@@ -2417,11 +2417,11 @@
           3.75,
           3.75,
           3.75,
-          3.75
+          4
         ],
         "unit": "percent",
         "source": "Federal Reserve",
-        "latestValue": 3.75,
+        "latestValue": 4,
         "latestDate": "2026-09"
       }
     },
