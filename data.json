@@ -1,5 +1,5 @@
 {
-  "generated": "2026-09-21",
+  "generated": "2026-09-28",
   "source": "Trading Economics, FRED, Bank of Canada, StatCan (weekly refresh)",
   "indicators": [
     {
@@ -1088,23 +1088,23 @@
           1.7337,
           1.8587,
           1.7273,
-          1.8541,
-          2.3588,
-          2.1632,
-          2.225,
-          2.3573,
-          2.2939,
-          1.7791,
-          2.3853,
-          2.8152,
-          3.2258,
-          2.7981,
-          3.0321,
-          3.034
+          1.9,
+          2.4,
+          2.2,
+          2.2,
+          2.4,
+          2.3,
+          1.8,
+          2.4,
+          2.8,
+          3.2,
+          2.8,
+          3,
+          3
         ],
         "unit": "percent",
         "source": "Statistics Canada",
-        "latestValue": 3.034,
+        "latestValue": 3,
         "latestDate": "2026-08"
       },
       "us": {
