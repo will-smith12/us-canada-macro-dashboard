@@ -1,5 +1,5 @@
 {
-  "generated": "2026-10-05",
+  "generated": "2026-10-19",
   "source": "Trading Economics, FRED, Bank of Canada, StatCan (weekly refresh)",
   "indicators": [
     {
@@ -777,7 +777,8 @@
         "2026-05",
         "2026-06",
         "2026-07",
-        "2026-08"
+        "2026-08",
+        "2026-09"
       ],
       "canada": {
         "values": [
@@ -1100,12 +1101,13 @@
           3.2258,
           2.7981,
           3.0321,
-          3.034
+          3.034,
+          3.0928
         ],
         "unit": "percent",
         "source": "Statistics Canada",
-        "latestValue": 3.034,
-        "latestDate": "2026-08"
+        "latestValue": 3.0928,
+        "latestDate": "2026-09"
       },
       "us": {
         "values": [
@@ -1428,12 +1430,13 @@
           4.16661,
           3.46353,
           3.30386,
-          3.35302
+          3.35302,
+          3.71725
         ],
         "unit": "percent",
         "source": "U.S. Bureau of Labor Statistics",
-        "latestValue": 3.35302,
-        "latestDate": "2026-08"
+        "latestValue": 3.71725,
+        "latestDate": "2026-09"
       }
     },
     {
@@ -4213,11 +4216,11 @@
           6.5,
           6.4,
           6.4,
-          6.4
+          6.5
         ],
         "unit": "percent",
         "source": "Statistics Canada",
-        "latestValue": 6.4,
+        "latestValue": 6.5,
         "latestDate": "2026-09"
       },
       "us": {
