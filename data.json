@@ -1,5 +1,5 @@
 {
-  "generated": "2026-10-19",
+  "generated": "2026-11-02",
   "source": "Trading Economics, FRED, Bank of Canada, StatCan (weekly refresh)",
   "indicators": [
     {
@@ -115,7 +115,8 @@
         "2025-09",
         "2025-12",
         "2026-03",
-        "2026-06"
+        "2026-06",
+        "2026-09"
       ],
       "canada": {
         "values": [
@@ -224,12 +225,13 @@
           0.5,
           -0.2,
           0.1,
+          0.8,
           0.8
         ],
         "unit": "percent",
         "source": "Statistics Canada",
         "latestValue": 0.8,
-        "latestDate": "2026-06"
+        "latestDate": "2026-09"
       },
       "us": {
         "values": [
@@ -338,12 +340,13 @@
           3.9,
           0.2,
           2.5,
-          2.2
+          2.2,
+          3.4
         ],
         "unit": "percent",
         "source": "U.S. Bureau of Economic Analysis",
-        "latestValue": 2.2,
-        "latestDate": "2026-06"
+        "latestValue": 3.4,
+        "latestDate": "2026-09"
       }
     },
     {
@@ -1768,7 +1771,8 @@
         "2026-07",
         "2026-08",
         "2026-09",
-        "2026-10"
+        "2026-10",
+        "2026-11"
       ],
       "canada": {
         "values": [
@@ -2093,12 +2097,13 @@
           2.25,
           2.25,
           2.25,
-          2.25
+          2.5,
+          2.5
         ],
         "unit": "percent",
         "source": "Bank of Canada",
-        "latestValue": 2.25,
-        "latestDate": "2026-10"
+        "latestValue": 2.5,
+        "latestDate": "2026-11"
       },
       "us": {
         "values": [
@@ -2423,12 +2428,13 @@
           3.75,
           3.75,
           4,
+          4,
           4
         ],
         "unit": "percent",
         "source": "Federal Reserve",
         "latestValue": 4,
-        "latestDate": "2026-10"
+        "latestDate": "2026-11"
       }
     },
     {
